@@ -2,9 +2,27 @@
 
 Jogo de plataforma 2D para web, feito com HTML5 Canvas e JavaScript puro.
 
-## Como Jogar
+## Como Rodar
 
-Abra o `index.html` no navegador ou use um servidor local (ex: Live Server no VSCode).
+O projeto usa ES6 modules, entao precisa de um servidor local (abrir o HTML direto no navegador nao funciona).
+
+**Opcao 1 — Live Server (VSCode):**
+1. Instale a extensao [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer)
+2. Clique com botao direito no `index.html` → "Open with Live Server"
+
+**Opcao 2 — npx (sem instalar nada):**
+```bash
+npx serve .
+```
+Acesse `http://localhost:3000` no navegador.
+
+**Opcao 3 — Python:**
+```bash
+python3 -m http.server 8000
+```
+Acesse `http://localhost:8000` no navegador.
+
+## Como Jogar
 
 ### Controles
 
