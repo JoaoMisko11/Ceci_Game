@@ -1,0 +1,62 @@
+{
+    "name": "Fase 1 - Inicio",
+    "width": 3200,
+    "height": 600,
+    "playerStart": { "x": 50, "y": 500 },
+    "platforms": [
+        { "x": 0, "y": 560, "w": 3200, "h": 40, "color": "#2ecc71" },
+
+        { "x": 250, "y": 460, "w": 150, "h": 20, "color": "#3498db" },
+        { "x": 500, "y": 400, "w": 150, "h": 20, "color": "#3498db" },
+        { "x": 750, "y": 350, "w": 200, "h": 20, "color": "#3498db" },
+        { "x": 1050, "y": 420, "w": 150, "h": 20, "color": "#3498db" },
+        { "x": 1300, "y": 350, "w": 180, "h": 20, "color": "#e67e22", "type": "moving", "moveDistX": 150, "moveSpeed": 60 },
+        { "x": 1550, "y": 300, "w": 150, "h": 20, "color": "#3498db" },
+        { "x": 1800, "y": 400, "w": 200, "h": 20, "color": "#3498db" },
+        { "x": 2100, "y": 460, "w": 150, "h": 20, "color": "#e74c3c", "type": "breakable" },
+        { "x": 2350, "y": 380, "w": 180, "h": 20, "color": "#3498db" },
+        { "x": 2600, "y": 300, "w": 200, "h": 20, "color": "#3498db" },
+        { "x": 2900, "y": 420, "w": 250, "h": 20, "color": "#3498db" },
+
+        { "x": 0, "y": 0, "w": 10, "h": 600, "color": "#2ecc71" },
+        { "x": 3190, "y": 0, "w": 10, "h": 600, "color": "#2ecc71" }
+    ],
+    "items": [
+        { "x": 300, "y": 430, "type": "coin" },
+        { "x": 330, "y": 430, "type": "coin" },
+        { "x": 360, "y": 430, "type": "coin" },
+        { "x": 550, "y": 370, "type": "coin" },
+        { "x": 580, "y": 370, "type": "coin" },
+        { "x": 800, "y": 320, "type": "star" },
+        { "x": 850, "y": 320, "type": "coin" },
+        { "x": 900, "y": 320, "type": "coin" },
+        { "x": 1100, "y": 390, "type": "coin" },
+        { "x": 1350, "y": 320, "type": "coin" },
+        { "x": 1380, "y": 320, "type": "coin" },
+        { "x": 1600, "y": 270, "type": "star" },
+        { "x": 1850, "y": 370, "type": "coin" },
+        { "x": 1880, "y": 370, "type": "coin" },
+        { "x": 1910, "y": 370, "type": "coin" },
+        { "x": 2150, "y": 430, "type": "coin" },
+        { "x": 2400, "y": 350, "type": "coin" },
+        { "x": 2430, "y": 350, "type": "coin" },
+        { "x": 2650, "y": 270, "type": "star" },
+        { "x": 2700, "y": 270, "type": "coin" },
+        { "x": 2950, "y": 390, "type": "coin" },
+        { "x": 2980, "y": 390, "type": "coin" },
+        { "x": 3010, "y": 390, "type": "coin" },
+        { "x": 3040, "y": 390, "type": "coin" }
+    ],
+    "powerups": [
+        { "x": 1100, "y": 530, "type": "speed" }
+    ],
+    "enemies": [
+        { "x": 400, "y": 530, "patrolDistance": 150 },
+        { "x": 900, "y": 530, "patrolDistance": 120 },
+        { "x": 1400, "y": 530, "patrolDistance": 200 },
+        { "x": 1900, "y": 530, "patrolDistance": 150 },
+        { "x": 2400, "y": 530, "patrolDistance": 180 },
+        { "x": 800, "y": 320, "patrolDistance": 100 },
+        { "x": 2650, "y": 270, "patrolDistance": 120 }
+    ]
+}

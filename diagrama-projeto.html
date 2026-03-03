@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ceci Game — Diagrama do Projeto</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0f0f1a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 20px 10px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #f4a261, #e76f51);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        header p {
+            color: #888;
+            font-size: 0.95rem;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            padding: 18px 20px 30px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* ─── Diagrama ─── */
+        .diagram {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        /* Grupo */
+        .group {
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+        }
+
+        .group-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .group-label .icon { font-size: 1rem; }
+
+        /* Subgrupo */
+        .subgroup {
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .subgroup:last-child { margin-bottom: 0; }
+
+        .subgroup-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+            opacity: 0.8;
+        }
+
+        /* Cards */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .card {
+            border-radius: 10px;
+            padding: 14px 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+
+        .card-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .card-name code {
+            background: rgba(255,255,255,0.15);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .card-desc {
+            font-size: 0.8rem;
+            opacity: 0.85;
+            line-height: 1.45;
+        }
+
+        .card-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .tag {
+            font-size: 0.65rem;
+            padding: 2px 7px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ─── Cores dos grupos ─── */
+
+        /* Root */
+        .group-root { background: rgba(45,45,55,0.6); border: 1px solid #444; }
+        .group-root .group-label { color: #ccc; }
+        .group-root .card { background: rgba(255,255,255,0.06); border: 1px solid #555; }
+        .group-root .card-name { color: #e0e0e0; }
+
+        /* CSS */
+        .group-css { background: rgba(38,70,83,0.4); border: 1px solid #2a9d8f55; }
+        .group-css .group-label { color: #2a9d8f; }
+        .group-css .card { background: rgba(42,157,143,0.15); border: 1px solid #2a9d8f44; }
+        .group-css .card-name { color: #5ec4b6; }
+
+        /* JS */
+        .group-js { background: rgba(26,26,46,0.6); border: 1px solid #4a90d955; }
+        .group-js .group-label { color: #6db3f2; }
+
+        /* JS subgrupos */
+        .sub-core { background: rgba(52,152,219,0.1); border: 1px solid #3498db33; }
+        .sub-core .subgroup-label { color: #6db3f2; }
+        .sub-core .card { background: rgba(52,152,219,0.15); border: 1px solid #3498db44; }
+        .sub-core .card-name { color: #7ec8f8; }
+        .sub-core .card.highlight { background: rgba(231,76,60,0.2); border-color: #e74c3c66; }
+        .sub-core .card.highlight .card-name { color: #f1948a; }
+
+        .sub-entities { background: rgba(230,126,34,0.08); border: 1px solid #e67e2233; }
+        .sub-entities .subgroup-label { color: #e67e22; }
+        .sub-entities .card { background: rgba(230,126,34,0.12); border: 1px solid #e67e2244; }
+        .sub-entities .card-name { color: #f0a560; }
+
+        .sub-world { background: rgba(39,174,96,0.08); border: 1px solid #27ae6033; }
+        .sub-world .subgroup-label { color: #27ae60; }
+        .sub-world .card { background: rgba(39,174,96,0.12); border: 1px solid #27ae6044; }
+        .sub-world .card-name { color: #58d68d; }
+
+        .sub-systems { background: rgba(155,89,182,0.08); border: 1px solid #9b59b633; }
+        .sub-systems .subgroup-label { color: #9b59b6; }
+        .sub-systems .card { background: rgba(155,89,182,0.12); border: 1px solid #9b59b644; }
+        .sub-systems .card-name { color: #c39bd3; }
+
+        /* Assets */
+        .group-assets { background: rgba(38,70,83,0.4); border: 1px solid #f4a26144; }
+        .group-assets .group-label { color: #f4a261; }
+        .group-assets .card { background: rgba(244,162,97,0.12); border: 1px solid #f4a26133; }
+        .group-assets .card-name { color: #f4a261; }
+
+        /* ─── Conexoes SVG ─── */
+        .connections-section {
+            max-width: 1100px;
+            margin: -10px auto 40px;
+            padding: 0 24px;
+        }
+
+        .flow-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 24px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid #333;
+        }
+
+        .flow-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .flow-node {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .flow-arrow {
+            color: #555;
+            font-size: 1.2rem;
+        }
+
+        .flow-arrow-down {
+            color: #555;
+            font-size: 1.4rem;
+        }
+
+        .fn-core { background: #e74c3c33; color: #f1948a; border: 1px solid #e74c3c55; }
+        .fn-blue { background: #3498db22; color: #7ec8f8; border: 1px solid #3498db44; }
+        .fn-orange { background: #e67e2222; color: #f0a560; border: 1px solid #e67e2244; }
+        .fn-green { background: #27ae6022; color: #58d68d; border: 1px solid #27ae6044; }
+        .fn-purple { background: #9b59b622; color: #c39bd3; border: 1px solid #9b59b644; }
+        .fn-yellow { background: #f39c1222; color: #f9d07a; border: 1px solid #f39c1244; }
+
+        .bracket {
+            font-size: 0.7rem;
+            color: #666;
+            text-align: center;
+            margin: 2px 0;
+        }
+
+        /* ─── Responsivo ─── */
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.5rem; }
+            .group { padding: 16px; }
+            .subgroup { padding: 12px; }
+            .cards { grid-template-columns: 1fr; }
+            .legend { gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Ceci Game</h1>
+    <p>Jogo de plataforma 2D — HTML5 Canvas + JavaScript puro</p>
+</header>
+
+<div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#3498db"></div> Nucleo</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#e67e22"></div> Entidades</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div> Mundo</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#9b59b6"></div> Sistemas</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f4a261"></div> Assets</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#555"></div> Config</div>
+</div>
+
+<div class="diagram">
+
+    <!-- Raiz -->
+    <div class="group group-root">
+        <div class="group-label"><span class="icon">📁</span> Raiz do Projeto</div>
+        <div class="cards">
+            <div class="card">
+                <div class="card-name"><code>index.html</code></div>
+                <div class="card-desc">Pagina principal com elemento &lt;canvas&gt; e carregamento dos modulos</div>
+                <div class="card-tags"><span class="tag">entry point</span></div>
+            </div>
+            <div class="card">
+                <div class="card-name"><code>implementation.md</code></div>
+                <div class="card-desc">Plano de implementacao com checklist de progresso</div>
+                <div class="card-tags"><span class="tag">docs</span></div>
+            </div>
+            <div class="card">
+                <div class="card-name"><code>CLAUDE.md</code></div>
+                <div class="card-desc">Instrucoes de projeto, convencoes e estrutura</div>
+                <div class="card-tags"><span class="tag">config</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSS -->
+    <div class="group group-css">
+        <div class="group-label"><span class="icon">🎨</span> css/</div>
+        <div class="cards">
+            <div class="card">
+                <div class="card-name"><code>style.css</code></div>
+                <div class="card-desc">Layout fullscreen, reset de margens e estilo do canvas</div>
+                <div class="card-tags"><span class="tag">layout</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS -->
+    <div class="group group-js">
+        <div class="group-label"><span class="icon">⚙️</span> js/ — Logica do Jogo</div>
+
+        <!-- Nucleo -->
+        <div class="subgroup sub-core">
+            <div class="subgroup-label">Nucleo</div>
+            <div class="cards">
+                <div class="card">
+                    <div class="card-name"><code>main.js</code></div>
+                    <div class="card-desc">Entry point — cria instancia do Game e inicia o requestAnimationFrame loop</div>
+                    <div class="card-tags"><span class="tag">init</span><span class="tag">loop</span></div>
+                </div>
+                <div class="card highlight">
+                    <div class="card-name"><code>game.js</code></div>
+                    <div class="card-desc">Classe Game — orquestra init, update e render. Maquina de estados (title, characterSelect, playing, gameover, victory). Tela de selecao de personagem com 3 skins</div>
+                    <div class="card-tags"><span class="tag">orquestrador</span><span class="tag">estados</span><span class="tag">skins</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Entidades -->
+        <div class="subgroup sub-entities">
+            <div class="subgroup-label">Entidades</div>
+            <div class="cards">
+                <div class="card">
+                    <div class="card-name"><code>player.js</code></div>
+                    <div class="card-desc">Movimento, pulo, gravidade, vidas, soco com hitbox e skin selecionavel do jogador</div>
+                    <div class="card-tags"><span class="tag">fisica</span><span class="tag">controle</span><span class="tag">skin</span><span class="tag">soco</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>enemy.js</code></div>
+                    <div class="card-desc">Inimigos com IA basica — patrulha e tipo voador</div>
+                    <div class="card-tags"><span class="tag">ia</span><span class="tag">patrulha</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>item.js</code></div>
+                    <div class="card-desc">Coletaveis — moedas e estrelas com animacao de coleta</div>
+                    <div class="card-tags"><span class="tag">coleta</span><span class="tag">score</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>powerup.js</code></div>
+                    <div class="card-desc">Power-ups — velocidade, pulo duplo e efeitos temporarios</div>
+                    <div class="card-tags"><span class="tag">buff</span><span class="tag">timer</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mundo -->
+        <div class="subgroup sub-world">
+            <div class="subgroup-label">Mundo</div>
+            <div class="cards">
+                <div class="card">
+                    <div class="card-name"><code>level.js</code></div>
+                    <div class="card-desc">Carrega niveis de JSON, gerencia fases e progressao</div>
+                    <div class="card-tags"><span class="tag">json</span><span class="tag">fases</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>platform.js</code></div>
+                    <div class="card-desc">Plataformas com colisao AABB, moveis e quebraveis</div>
+                    <div class="card-tags"><span class="tag">colisao</span><span class="tag">aabb</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>camera.js</code></div>
+                    <div class="card-desc">Camera que segue o jogador com limites do mapa</div>
+                    <div class="card-tags"><span class="tag">viewport</span><span class="tag">scroll</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sistemas -->
+        <div class="subgroup sub-systems">
+            <div class="subgroup-label">Sistemas</div>
+            <div class="cards">
+                <div class="card">
+                    <div class="card-name"><code>input.js</code></div>
+                    <div class="card-desc">Captura de teclado — WASD, setas, espaco para pular e X/Z para soco</div>
+                    <div class="card-tags"><span class="tag">teclado</span><span class="tag">wasd</span><span class="tag">soco</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>renderer.js</code></div>
+                    <div class="card-desc">Renderizacao via Canvas API — parallax, HUD, telas, particulas, 3 skins de personagem e animacao de soco</div>
+                    <div class="card-tags"><span class="tag">canvas</span><span class="tag">draw</span><span class="tag">skins</span><span class="tag">soco</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>audio.js</code></div>
+                    <div class="card-desc">Web Audio API — efeitos sonoros sintetizados (pulo, coleta, dano, soco, kill)</div>
+                    <div class="card-tags"><span class="tag">som</span><span class="tag">sfx</span><span class="tag">soco</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>particles.js</code></div>
+                    <div class="card-desc">Sistema de particulas — poeira, brilho, explosoes e impacto de soco</div>
+                    <div class="card-tags"><span class="tag">vfx</span><span class="tag">efeitos</span><span class="tag">soco</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assets -->
+    <div class="group group-assets">
+        <div class="group-label"><span class="icon">📦</span> assets/ — Recursos</div>
+        <div class="cards">
+            <div class="card">
+                <div class="card-name"><code>sprites/</code></div>
+                <div class="card-desc">Sprites e spritesheets para personagens e cenario</div>
+                <div class="card-tags"><span class="tag">imagens</span></div>
+            </div>
+            <div class="card">
+                <div class="card-name"><code>audio/</code></div>
+                <div class="card-desc">Arquivos de som e musica de fundo</div>
+                <div class="card-tags"><span class="tag">musica</span></div>
+            </div>
+            <div class="card">
+                <div class="card-name"><code>levels/</code></div>
+                <div class="card-desc">Dados dos niveis em JSON — level1 (tutorial) e level2 (avancado)</div>
+                <div class="card-tags"><span class="tag">level1.json</span><span class="tag">level2.json</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fluxo de Dependencias -->
+<div class="connections-section">
+    <div class="flow-title">Fluxo de Dependencias</div>
+    <div class="flow-diagram">
+
+        <div class="flow-row">
+            <div class="flow-node fn-blue">index.html</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node fn-blue">main.js</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node fn-core">game.js</div>
+        </div>
+
+        <div class="flow-arrow-down">↓</div>
+        <div class="bracket">game.js orquestra tudo</div>
+
+        <div class="flow-row">
+            <div class="flow-node fn-orange">player.js</div>
+            <div class="flow-node fn-green">level.js</div>
+            <div class="flow-node fn-purple">input.js</div>
+            <div class="flow-node fn-purple">renderer.js</div>
+            <div class="flow-node fn-purple">audio.js</div>
+        </div>
+
+        <div class="flow-arrow-down">↓</div>
+        <div class="bracket">dependencias internas</div>
+
+        <div class="flow-row">
+            <div class="flow-node fn-green">platform.js</div>
+            <div class="flow-node fn-orange">enemy.js</div>
+            <div class="flow-node fn-orange">item.js</div>
+            <div class="flow-node fn-orange">powerup.js</div>
+            <div class="flow-node fn-purple">camera.js</div>
+            <div class="flow-node fn-purple">particles.js</div>
+        </div>
+
+        <div class="flow-arrow-down">↓</div>
+
+        <div class="flow-row">
+            <div class="flow-node fn-yellow">levels/*.json</div>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>
