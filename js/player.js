@@ -4,6 +4,12 @@ const MOVE_SPEED = 300;
 const JUMP_FORCE = -700;
 const FRICTION = 0.85;
 
+// Modificadores de agua
+const WATER_GRAVITY_MULT = 0.4;
+const WATER_SPEED_MULT = 0.5;
+const WATER_JUMP_MULT = 0.6;
+const WATER_MAX_FALL_MULT = 0.3;
+
 export class Player {
     constructor(x, y, skin = 0) {
         this.x = x;
@@ -36,6 +42,9 @@ export class Player {
         this.PUNCH_COOLDOWN = 0.35; // tempo entre socos
         this.PUNCH_RANGE = 28; // alcance do soco
         this.PUNCH_HEIGHT = 20; // altura da hitbox do soco
+
+        // Agua
+        this.inWater = false;
     }
 
     get isAlive() {
@@ -102,7 +111,18 @@ export class Player {
             this.punchCooldown = this.PUNCH_COOLDOWN;
         }
 
-        const currentSpeed = this.speedBoost ? MOVE_SPEED * 1.6 : MOVE_SPEED;
+        let currentSpeed = this.speedBoost ? MOVE_SPEED * 1.6 : MOVE_SPEED;
+        let currentJumpForce = JUMP_FORCE;
+        let currentGravity = GRAVITY;
+        let currentMaxFall = MAX_FALL_SPEED;
+
+        // Modificadores de agua
+        if (this.inWater) {
+            currentSpeed *= WATER_SPEED_MULT;
+            currentJumpForce *= WATER_JUMP_MULT;
+            currentGravity *= WATER_GRAVITY_MULT;
+            currentMaxFall *= WATER_MAX_FALL_MULT;
+        }
 
         // Movimento horizontal
         if (input.left) {
@@ -112,24 +132,26 @@ export class Player {
             this.vx = currentSpeed;
             this.lastDirection = 1;
         } else {
-            this.vx *= FRICTION;
+            this.vx *= this.inWater ? 0.92 : FRICTION;
             if (Math.abs(this.vx) < 1) this.vx = 0;
         }
 
-        // Pulo
-        if (input.jumpPressed && this.onGround) {
-            this.vy = JUMP_FORCE;
+        // Pulo (na agua pode pular varias vezes — nadar pra cima)
+        if (input.jumpPressed && this.inWater) {
+            this.vy = currentJumpForce;
+        } else if (input.jumpPressed && this.onGround) {
+            this.vy = currentJumpForce;
             this.onGround = false;
             if (this.doubleJump) this.canDoubleJump = true;
         } else if (input.jumpPressed && !this.onGround && this.canDoubleJump) {
-            this.vy = JUMP_FORCE * 0.85;
+            this.vy = currentJumpForce * 0.85;
             this.canDoubleJump = false;
         }
 
         // Gravidade
-        this.vy += GRAVITY * dt;
-        if (this.vy > MAX_FALL_SPEED) {
-            this.vy = MAX_FALL_SPEED;
+        this.vy += currentGravity * dt;
+        if (this.vy > currentMaxFall) {
+            this.vy = currentMaxFall;
         }
 
         // Atualizar posicao

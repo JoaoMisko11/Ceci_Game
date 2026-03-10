@@ -1,0 +1,96 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#4a90d9', 'primaryTextColor': '#fff', 'primaryBorderColor': '#2c5f8a', 'lineColor': '#555', 'secondaryColor': '#f4a261', 'tertiaryColor': '#e8f5e9', 'fontSize': '14px'}}}%%
+
+graph TD
+    subgraph ROOT["Ceci_Game/"]
+        direction TB
+        INDEX["index.html<br/><i>Pagina principal com canvas</i>"]
+        IMPL["implementation.md<br/><i>Plano e progresso</i>"]
+        CLAUDE["CLAUDE.md<br/><i>Instrucoes do projeto</i>"]
+    end
+
+    subgraph CSS["css/"]
+        STYLE["style.css<br/><i>Layout fullscreen e reset</i>"]
+    end
+
+    subgraph JS["js/ — Logica do Jogo"]
+        direction TB
+
+        subgraph CORE["Nucleo"]
+            MAIN["main.js<br/><i>Entry point e game loop</i>"]
+            GAME["game.js<br/><i>Classe Game: init, update, render<br/>Maquina de estados</i>"]
+        end
+
+        subgraph ENTITIES["Entidades"]
+            PLAYER["player.js<br/><i>Movimento, pulo, gravidade<br/>Vidas, animacoes</i>"]
+            ENEMY["enemy.js<br/><i>Patrulha, voador<br/>IA basica</i>"]
+            ITEM["item.js<br/><i>Moedas, estrelas<br/>Coletaveis</i>"]
+            POWERUP["powerup.js<br/><i>Velocidade, pulo duplo<br/>Efeitos temporarios</i>"]
+        end
+
+        subgraph WORLD["Mundo"]
+            LEVEL["level.js<br/><i>Carrega JSON, gerencia fases<br/>Progressao</i>"]
+            PLATFORM["platform.js<br/><i>Colisao AABB, moveis<br/>Quebraveis</i>"]
+            CAMERA["camera.js<br/><i>Segue jogador<br/>Limites do mapa</i>"]
+        end
+
+        subgraph SYSTEMS["Sistemas"]
+            INPUT["input.js<br/><i>Teclado: WASD / Setas<br/>Espaco para pular</i>"]
+            RENDERER["renderer.js<br/><i>Canvas API, parallax<br/>HUD, telas, particulas</i>"]
+            AUDIO["audio.js<br/><i>Web Audio API<br/>Efeitos sintetizados</i>"]
+            PARTICLES["particles.js<br/><i>Poeira, brilho<br/>Explosoes</i>"]
+        end
+    end
+
+    subgraph ASSETS["assets/ — Recursos"]
+        direction TB
+        SPRITES["sprites/<br/><i>Sprites e spritesheets</i>"]
+        AUDIODIR["audio/<br/><i>Sons e musica</i>"]
+        LEVELS["levels/<br/><i>level1.json — Fase tutorial<br/>level2.json — Dificuldade maior</i>"]
+    end
+
+    INDEX --> MAIN
+    MAIN --> GAME
+
+    GAME --> PLAYER
+    GAME --> LEVEL
+    GAME --> INPUT
+    GAME --> RENDERER
+    GAME --> AUDIO
+
+    LEVEL --> PLATFORM
+    LEVEL --> ENEMY
+    LEVEL --> ITEM
+    LEVEL --> POWERUP
+    LEVEL --> LEVELS
+
+    RENDERER --> CAMERA
+    RENDERER --> PARTICLES
+
+    PLAYER --> INPUT
+
+    style ROOT fill:#2d2d2d,stroke:#555,color:#eee
+    style CSS fill:#264653,stroke:#2a9d8f,color:#eee
+    style JS fill:#1a1a2e,stroke:#4a90d9,color:#eee
+    style CORE fill:#2c3e50,stroke:#3498db,color:#eee
+    style ENTITIES fill:#2c3e50,stroke:#e67e22,color:#eee
+    style WORLD fill:#2c3e50,stroke:#27ae60,color:#eee
+    style SYSTEMS fill:#2c3e50,stroke:#9b59b6,color:#eee
+    style ASSETS fill:#264653,stroke:#f4a261,color:#eee
+
+    style INDEX fill:#4a90d9,stroke:#2c5f8a,color:#fff
+    style MAIN fill:#3498db,stroke:#2980b9,color:#fff
+    style GAME fill:#e74c3c,stroke:#c0392b,color:#fff
+    style PLAYER fill:#e67e22,stroke:#d35400,color:#fff
+    style ENEMY fill:#e67e22,stroke:#d35400,color:#fff
+    style ITEM fill:#e67e22,stroke:#d35400,color:#fff
+    style POWERUP fill:#e67e22,stroke:#d35400,color:#fff
+    style LEVEL fill:#27ae60,stroke:#1e8449,color:#fff
+    style PLATFORM fill:#27ae60,stroke:#1e8449,color:#fff
+    style CAMERA fill:#27ae60,stroke:#1e8449,color:#fff
+    style INPUT fill:#9b59b6,stroke:#8e44ad,color:#fff
+    style RENDERER fill:#9b59b6,stroke:#8e44ad,color:#fff
+    style AUDIO fill:#9b59b6,stroke:#8e44ad,color:#fff
+    style PARTICLES fill:#9b59b6,stroke:#8e44ad,color:#fff
+    style LEVELS fill:#f39c12,stroke:#e67e22,color:#fff
+    style SPRITES fill:#f39c12,stroke:#e67e22,color:#fff
+    style AUDIODIR fill:#f39c12,stroke:#e67e22,color:#fff

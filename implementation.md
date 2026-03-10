@@ -71,6 +71,7 @@ Jogo de plataforma 2D para web com HTML5 Canvas.
 - [x] Novos tipos de inimigos (voador com asas animadas e flutuacao)
 - [x] Power-ups (velocidade 8s, pulo duplo 10s) com timer no HUD
 - [x] Sistema de progressao entre fases (ENTER na vitoria avanca)
+- [x] Fase 3 com zonas de agua e inimigos nadadores (swimmer)
 - [ ] Boss fight (opcional — futuro)
 
 ## Fase 8.5 - Mecanica de Soco ✅
@@ -100,7 +101,7 @@ Jogo de plataforma 2D para web com HTML5 Canvas.
 
 ## Fase 11 - Hazards e Ambiente Interativo
 
-- [ ] Agua (desacelera movimento, pulo mais fraco, timer de ar)
+- [x] Agua (desacelera movimento, pulo mais fraco, nado com pulos repetidos)
 - [ ] Lava/espinhos (dano instantaneo ao toque)
 - [ ] Trampolins (impulso vertical extra)
 - [ ] Alavancas/botoes que abrem portas ou ativam plataformas

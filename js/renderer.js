@@ -348,12 +348,73 @@ export function drawPunch(ctx, player) {
     ctx.restore();
 }
 
+// Desenha zona de agua com ondas animadas
+export function drawWater(ctx, water) {
+    const { x, y, w, h, time } = water;
+
+    // Corpo da agua (semi-transparente)
+    ctx.fillStyle = 'rgba(30, 100, 200, 0.35)';
+    ctx.fillRect(x, y, w, h);
+
+    // Camada mais escura no fundo
+    const gradH = Math.min(h, 60);
+    const grad = ctx.createLinearGradient(x, y + h - gradH, x, y + h);
+    grad.addColorStop(0, 'rgba(10, 50, 120, 0)');
+    grad.addColorStop(1, 'rgba(10, 50, 120, 0.3)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y + h - gradH, w, gradH);
+
+    // Ondas na superficie
+    ctx.strokeStyle = 'rgba(100, 180, 255, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let wx = x; wx < x + w; wx += 4) {
+        const wy = y + Math.sin((wx * 0.03) + time * 3) * 3;
+        if (wx === x) {
+            ctx.moveTo(wx, wy);
+        } else {
+            ctx.lineTo(wx, wy);
+        }
+    }
+    ctx.stroke();
+
+    // Segunda onda (mais sutil)
+    ctx.strokeStyle = 'rgba(150, 210, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let wx = x; wx < x + w; wx += 4) {
+        const wy = y + 4 + Math.sin((wx * 0.04) + time * 2 + 1) * 2;
+        if (wx === x) {
+            ctx.moveTo(wx, wy);
+        } else {
+            ctx.lineTo(wx, wy);
+        }
+    }
+    ctx.stroke();
+
+    // Bolhas ocasionais
+    ctx.fillStyle = 'rgba(180, 220, 255, 0.4)';
+    for (let i = 0; i < 5; i++) {
+        const bx = x + ((i * 137 + Math.floor(time * 30)) % w);
+        const by = y + h * 0.3 + Math.sin(time * 1.5 + i * 2) * (h * 0.25);
+        const br = 2 + (i % 3);
+        ctx.beginPath();
+        ctx.arc(bx, by, br, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
 // Desenha inimigo com aparencia melhorada
 export function drawEnemy(ctx, enemy) {
     if (!enemy.alive) return;
 
     if (enemy.type === 'flyer') {
         drawFlyer(ctx, enemy);
+        return;
+    }
+
+    if (enemy.type === 'swimmer') {
+        drawSwimmer(ctx, enemy);
         return;
     }
 
@@ -423,6 +484,78 @@ function drawFlyer(ctx, enemy) {
     const pupilOffset = direction * 2;
     ctx.fillRect(x + 8 + pupilOffset, y + 11, 3, 3);
     ctx.fillRect(x + w - 11 + pupilOffset, y + 11, 3, 3);
+}
+
+function drawSwimmer(ctx, enemy) {
+    const { x, y, w, h, direction, swimTime } = enemy;
+
+    // Corpo (peixe/criatura aquatica)
+    ctx.fillStyle = '#1abc9c';
+    roundRect(ctx, x + 4, y + 6, w - 8, h - 8, 10);
+
+    // Barriga mais clara
+    ctx.fillStyle = '#a3e4d7';
+    roundRect(ctx, x + 8, y + 14, w - 16, h - 18, 6);
+
+    // Barbatana dorsal
+    ctx.fillStyle = '#16a085';
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2 - 4, y + 6);
+    ctx.lineTo(x + w / 2, y - 4);
+    ctx.lineTo(x + w / 2 + 4, y + 6);
+    ctx.closePath();
+    ctx.fill();
+
+    // Cauda (na direcao oposta ao movimento)
+    ctx.fillStyle = '#16a085';
+    const tailWag = Math.sin((swimTime || 0) * 5) * 4;
+    if (direction >= 0) {
+        ctx.beginPath();
+        ctx.moveTo(x + 2, y + 10);
+        ctx.lineTo(x - 8, y + 6 + tailWag);
+        ctx.lineTo(x - 8, y + h - 8 + tailWag);
+        ctx.lineTo(x + 2, y + h - 12);
+        ctx.closePath();
+        ctx.fill();
+    } else {
+        ctx.beginPath();
+        ctx.moveTo(x + w - 2, y + 10);
+        ctx.lineTo(x + w + 8, y + 6 + tailWag);
+        ctx.lineTo(x + w + 8, y + h - 8 + tailWag);
+        ctx.lineTo(x + w - 2, y + h - 12);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // Barbatanas laterais
+    ctx.fillStyle = '#48c9b0';
+    const finFlap = Math.sin((swimTime || 0) * 4) * 3;
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2, y + h - 6);
+    ctx.lineTo(x + w / 2 - 6, y + h + 4 + finFlap);
+    ctx.lineTo(x + w / 2 + 6, y + h + 4 + finFlap);
+    ctx.closePath();
+    ctx.fill();
+
+    // Olhos
+    ctx.fillStyle = '#fff';
+    const eyeX = direction >= 0 ? 4 : -4;
+    ctx.beginPath();
+    ctx.arc(x + 10 + eyeX, y + 12, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + w - 10 + eyeX, y + 12, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pupilas
+    ctx.fillStyle = '#000';
+    const pShift = direction >= 0 ? 1.5 : -1.5;
+    ctx.beginPath();
+    ctx.arc(x + 10 + eyeX + pShift, y + 12, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + w - 10 + eyeX + pShift, y + 12, 2, 0, Math.PI * 2);
+    ctx.fill();
 }
 
 // Desenha item com brilho

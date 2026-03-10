@@ -11,11 +11,14 @@ export class Enemy {
         this.startX = x;
         this.startY = y;
         this.patrolDistance = patrolDistance;
-        this.speed = type === 'flyer' ? 60 : 80;
+        this.speed = type === 'flyer' ? 60 : type === 'swimmer' ? 70 : 80;
         this.direction = 1;
 
         // Voador
         this.floatTime = Math.random() * Math.PI * 2;
+
+        // Nadador
+        this.swimTime = Math.random() * Math.PI * 2;
     }
 
     update(dt) {
@@ -35,6 +38,12 @@ export class Enemy {
         if (this.type === 'flyer') {
             this.floatTime += dt * 3;
             this.y = this.startY + Math.sin(this.floatTime) * 20;
+        }
+
+        // Nadador oscila verticalmente (simulando nado)
+        if (this.type === 'swimmer') {
+            this.swimTime += dt * 2.5;
+            this.y = this.startY + Math.sin(this.swimTime) * 15;
         }
     }
 

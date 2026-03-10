@@ -3,7 +3,7 @@ import { Input } from './input.js';
 import { checkAABB, resolveCollision } from './platform.js';
 import { Camera } from './camera.js';
 import { Level } from './level.js';
-import { drawPlayer, drawPunch, drawEnemy, drawItem, drawBackground, drawPlayerPreview, SKINS } from './renderer.js';
+import { drawPlayer, drawPunch, drawEnemy, drawItem, drawBackground, drawPlayerPreview, drawWater, SKINS } from './renderer.js';
 import { playJumpSound, playCoinSound, playStarSound, playDamageSound, playEnemyKillSound, playGameOverSound, playPunchSound, playPunchHitSound } from './audio.js';
 import { ParticleSystem } from './particles.js';
 
@@ -17,7 +17,8 @@ const STATE = {
 
 const LEVELS = [
     'assets/levels/level1.json',
-    'assets/levels/level2.json'
+    'assets/levels/level2.json',
+    'assets/levels/level3.json'
 ];
 
 export class Game {
@@ -138,6 +139,16 @@ export class Game {
             this.particles.landDust(this.player.x, this.player.y + this.player.height, this.player.width);
         }
 
+        // Verificar se jogador esta na agua
+        const playerRect = { x: this.player.x, y: this.player.y, w: this.player.width, h: this.player.height };
+        this.player.inWater = false;
+        for (const water of this.level.waterZones) {
+            if (water.contains(playerRect)) {
+                this.player.inWater = true;
+                break;
+            }
+        }
+
         // Colisao com plataformas
         for (const platform of this.level.platforms) {
             if (checkAABB(
@@ -149,7 +160,6 @@ export class Game {
         }
 
         // Colisao com itens
-        const playerRect = { x: this.player.x, y: this.player.y, w: this.player.width, h: this.player.height };
         for (const item of this.level.items) {
             if (!item.collected && checkAABB(playerRect, item)) {
                 this.player.score += item.collect();
@@ -243,6 +253,9 @@ export class Game {
 
         this.camera.applyTransform(ctx);
 
+        for (const water of this.level.waterZones) {
+            drawWater(ctx, water);
+        }
         for (const platform of this.level.platforms) {
             platform.render(ctx);
         }
