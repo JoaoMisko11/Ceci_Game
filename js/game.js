@@ -10,6 +10,7 @@ import { ParticleSystem } from './particles.js';
 const STATE = {
     TITLE: 'title',
     CHARACTER_SELECT: 'characterSelect',
+    LEVEL_SELECT: 'levelSelect',
     PLAYING: 'playing',
     GAME_OVER: 'gameOver',
     VICTORY: 'victory'
@@ -20,6 +21,14 @@ const LEVELS = [
     'assets/levels/level2.json',
     'assets/levels/level3.json'
 ];
+
+const LEVEL_NAMES = [
+    'Fase 1 - Inicio',
+    'Fase 2 - Desafio',
+    'Fase 3 - Profundezas'
+];
+
+const SAVE_KEY = 'ceciGameSave';
 
 export class Game {
     constructor(canvas, ctx) {
@@ -37,6 +46,52 @@ export class Game {
         this.currentLevelIndex = 0;
         this.selectedSkin = 0;
         this.selectTime = 0;
+
+        // Seletor de fase
+        this.selectedLevel = 0;
+        this.levelSelectTime = 0;
+
+        // Save — carregar dados salvos
+        this.saveData = this.loadSave();
+        this.unlockedLevels = this.saveData.unlockedLevels || 1; // quantas fases desbloqueadas
+        this.highScore = this.saveData.highScore || 0;
+        if (this.saveData.skin !== undefined) {
+            this.selectedSkin = this.saveData.skin;
+        }
+    }
+
+    // === Save / Load ===
+
+    loadSave() {
+        try {
+            const data = localStorage.getItem(SAVE_KEY);
+            return data ? JSON.parse(data) : {};
+        } catch {
+            return {};
+        }
+    }
+
+    save() {
+        const data = {
+            unlockedLevels: this.unlockedLevels,
+            highScore: this.highScore,
+            skin: this.selectedSkin
+        };
+        try {
+            localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+        } catch {
+            // localStorage indisponivel — ignorar
+        }
+    }
+
+    deleteSave() {
+        try {
+            localStorage.removeItem(SAVE_KEY);
+        } catch {
+            // ignorar
+        }
+        this.unlockedLevels = 1;
+        this.highScore = 0;
     }
 
     async loadLevel(index) {
@@ -80,6 +135,11 @@ export class Game {
 
         if (this.state === STATE.CHARACTER_SELECT) {
             this.selectTime += dt;
+            return;
+        }
+
+        if (this.state === STATE.LEVEL_SELECT) {
+            this.levelSelectTime += dt;
             return;
         }
 
@@ -212,6 +272,16 @@ export class Game {
         const allCollected = this.level.items.length > 0 && this.level.items.every(i => i.collected);
         if (allCollected) {
             this.state = STATE.VICTORY;
+
+            // Desbloquear proxima fase e salvar
+            const nextLevel = this.currentLevelIndex + 2; // +2 porque unlockedLevels e 1-based
+            if (nextLevel > this.unlockedLevels) {
+                this.unlockedLevels = Math.min(nextLevel, LEVELS.length);
+            }
+            if (this.player.score > this.highScore) {
+                this.highScore = this.player.score;
+            }
+            this.save();
         }
 
         // Jogador caiu do mapa
@@ -240,6 +310,11 @@ export class Game {
 
         if (this.state === STATE.CHARACTER_SELECT) {
             this.renderCharacterSelect();
+            return;
+        }
+
+        if (this.state === STATE.LEVEL_SELECT) {
+            this.renderLevelSelect();
             return;
         }
 
@@ -313,6 +388,13 @@ export class Game {
             ctx.fillText('Pressione ENTER para jogar', w / 2, h / 2 + 60);
         }
 
+        // Mostrar high score se tiver save
+        if (this.highScore > 0) {
+            ctx.fillStyle = '#f1c40f';
+            ctx.font = '16px monospace';
+            ctx.fillText(`Recorde: ${this.highScore}`, w / 2, h / 2 + 100);
+        }
+
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.font = '14px monospace';
         ctx.fillText('Setas/WASD = Mover  |  Espaco = Pular  |  X/Z = Soco', w / 2, h - 40);
@@ -364,7 +446,10 @@ export class Game {
         ctx.fillStyle = '#fff';
         ctx.font = '20px monospace';
         ctx.fillText(`Pontuacao: ${this.player.score}`, canvas.width / 2, canvas.height / 2 + 30);
-        ctx.fillText('Pressione R para reiniciar', canvas.width / 2, canvas.height / 2 + 65);
+        ctx.fillText('R = Tentar novamente', canvas.width / 2, canvas.height / 2 + 65);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = '16px monospace';
+        ctx.fillText('ESC = Selecao de fases', canvas.width / 2, canvas.height / 2 + 95);
     }
 
     renderVictory() {
@@ -381,15 +466,29 @@ export class Game {
         ctx.font = '24px monospace';
         ctx.fillText(`Pontuacao: ${this.player.score}`, canvas.width / 2, canvas.height / 2 + 30);
 
+        // Novo recorde?
+        if (this.player.score >= this.highScore && this.highScore > 0) {
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = 'bold 18px monospace';
+            ctx.fillText('NOVO RECORDE!', canvas.width / 2, canvas.height / 2 + 55);
+        }
+
         const hasNextLevel = this.currentLevelIndex + 1 < LEVELS.length;
         ctx.fillStyle = '#fff';
         ctx.font = '20px monospace';
         if (hasNextLevel) {
-            ctx.fillText('Pressione ENTER para proxima fase', canvas.width / 2, canvas.height / 2 + 70);
+            ctx.fillText('ENTER = Proxima fase', canvas.width / 2, canvas.height / 2 + 80);
         } else {
-            ctx.fillText('Parabens! Voce completou o jogo!', canvas.width / 2, canvas.height / 2 + 70);
-            ctx.fillText('Pressione R para jogar novamente', canvas.width / 2, canvas.height / 2 + 100);
+            ctx.fillText('Parabens! Voce completou o jogo!', canvas.width / 2, canvas.height / 2 + 80);
         }
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = '16px monospace';
+        ctx.fillText('R = Selecao de fases', canvas.width / 2, canvas.height / 2 + 110);
+
+        // Salvo automaticamente
+        ctx.fillStyle = 'rgba(46, 204, 113, 0.6)';
+        ctx.font = '12px monospace';
+        ctx.fillText('Progresso salvo automaticamente', canvas.width / 2, canvas.height / 2 + 140);
     }
 
     renderCharacterSelect() {
@@ -483,6 +582,142 @@ export class Game {
         ctx.fillText('Setas <- -> para escolher', w / 2, h - 40);
     }
 
+    renderLevelSelect() {
+        const { ctx, canvas } = this;
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // Fundo gradiente
+        const gradient = ctx.createLinearGradient(0, 0, 0, h);
+        gradient.addColorStop(0, '#0f0c29');
+        gradient.addColorStop(0.5, '#302b63');
+        gradient.addColorStop(1, '#24243e');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, w, h);
+
+        // Titulo
+        ctx.fillStyle = '#f1c40f';
+        ctx.font = 'bold 36px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('SELECIONE A FASE', w / 2, 80);
+
+        // Desenhar cards das fases
+        const spacing = Math.min(200, (w - 100) / LEVELS.length);
+        const baseX = w / 2;
+        const baseY = h / 2 - 30;
+
+        for (let i = 0; i < LEVELS.length; i++) {
+            const px = baseX + (i - Math.floor(LEVELS.length / 2)) * spacing;
+            const py = baseY;
+            const isSelected = i === this.selectedLevel;
+            const isUnlocked = i < this.unlockedLevels;
+
+            // Card de fundo
+            const cardW = 140;
+            const cardH = 160;
+            const cx = px - cardW / 2;
+            const cy = py - cardH / 2;
+
+            if (isSelected) {
+                const bounce = Math.sin(this.levelSelectTime * 3) * 3;
+
+                // Glow
+                ctx.fillStyle = isUnlocked ? 'rgba(241, 196, 15, 0.15)' : 'rgba(150, 150, 150, 0.1)';
+                ctx.fillRect(cx - 6, cy - 6 + bounce, cardW + 12, cardH + 12);
+
+                // Borda
+                ctx.strokeStyle = isUnlocked ? '#f1c40f' : '#666';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(cx - 4, cy - 4 + bounce, cardW + 8, cardH + 8);
+
+                // Card
+                ctx.fillStyle = isUnlocked ? 'rgba(52, 152, 219, 0.3)' : 'rgba(80, 80, 80, 0.3)';
+                ctx.fillRect(cx, cy + bounce, cardW, cardH);
+
+                // Numero da fase (grande)
+                ctx.fillStyle = isUnlocked ? '#fff' : '#666';
+                ctx.font = 'bold 48px monospace';
+                ctx.fillText(`${i + 1}`, px, py - 10 + bounce);
+
+                // Nome
+                ctx.fillStyle = isUnlocked ? '#f1c40f' : '#555';
+                ctx.font = '13px monospace';
+                ctx.fillText(LEVEL_NAMES[i].split(' - ')[1] || LEVEL_NAMES[i], px, py + 35 + bounce);
+
+                // Status
+                if (!isUnlocked) {
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.font = '12px monospace';
+                    ctx.fillText('BLOQUEADA', px, py + 58 + bounce);
+                } else {
+                    ctx.fillStyle = '#2ecc71';
+                    ctx.font = '12px monospace';
+                    ctx.fillText('DESBLOQUEADA', px, py + 58 + bounce);
+                }
+            } else {
+                ctx.globalAlpha = isUnlocked ? 0.5 : 0.25;
+
+                // Card
+                ctx.fillStyle = isUnlocked ? 'rgba(52, 152, 219, 0.2)' : 'rgba(80, 80, 80, 0.2)';
+                ctx.fillRect(cx, cy, cardW, cardH);
+
+                // Numero
+                ctx.fillStyle = isUnlocked ? '#aaa' : '#555';
+                ctx.font = 'bold 48px monospace';
+                ctx.fillText(`${i + 1}`, px, py - 10);
+
+                // Nome
+                ctx.fillStyle = isUnlocked ? '#888' : '#444';
+                ctx.font = '13px monospace';
+                ctx.fillText(LEVEL_NAMES[i].split(' - ')[1] || LEVEL_NAMES[i], px, py + 35);
+
+                // Cadeado para fases bloqueadas
+                if (!isUnlocked) {
+                    ctx.fillStyle = '#555';
+                    ctx.font = '24px monospace';
+                    ctx.fillText('🔒', px, py + 60);
+                }
+
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // Setas
+        ctx.fillStyle = '#f1c40f';
+        ctx.font = 'bold 30px monospace';
+        if (this.selectedLevel > 0) {
+            ctx.fillText('<', baseX - Math.floor(LEVELS.length / 2) * spacing - 50, baseY);
+        }
+        if (this.selectedLevel < LEVELS.length - 1) {
+            ctx.fillText('>', baseX + Math.floor(LEVELS.length / 2) * spacing + 50, baseY);
+        }
+
+        // Instrucoes
+        if (Math.floor(this.levelSelectTime * 2) % 2 === 0) {
+            ctx.fillStyle = '#fff';
+            ctx.font = '20px monospace';
+            if (this.selectedLevel < this.unlockedLevels) {
+                ctx.fillText('Pressione ENTER para jogar', w / 2, h - 80);
+            } else {
+                ctx.fillStyle = '#e74c3c';
+                ctx.fillText('Complete a fase anterior para desbloquear', w / 2, h - 80);
+            }
+        }
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = '14px monospace';
+        ctx.fillText('Setas <- -> para escolher  |  ESC para voltar', w / 2, h - 40);
+
+        // High score
+        if (this.highScore > 0) {
+            ctx.fillStyle = 'rgba(241, 196, 15, 0.6)';
+            ctx.font = '14px monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText(`Recorde: ${this.highScore}`, w - 20, 30);
+            ctx.textAlign = 'center';
+        }
+    }
+
     handleKey(code) {
         if (this.state === STATE.TITLE && code === 'Enter') {
             this.state = STATE.CHARACTER_SELECT;
@@ -493,9 +728,27 @@ export class Game {
             } else if (code === 'ArrowRight' || code === 'KeyD') {
                 this.selectedSkin = Math.min(2, this.selectedSkin + 1);
             } else if (code === 'Enter') {
-                this.loadLevel(0);
+                this.state = STATE.LEVEL_SELECT;
+                this.levelSelectTime = 0;
+                this.selectedLevel = 0;
             } else if (code === 'Escape') {
                 this.state = STATE.TITLE;
+            }
+        } else if (this.state === STATE.LEVEL_SELECT) {
+            if (code === 'ArrowLeft' || code === 'KeyA') {
+                this.selectedLevel = Math.max(0, this.selectedLevel - 1);
+            } else if (code === 'ArrowRight' || code === 'KeyD') {
+                this.selectedLevel = Math.min(LEVELS.length - 1, this.selectedLevel + 1);
+            } else if (code === 'Enter') {
+                // So pode jogar fases desbloqueadas
+                if (this.selectedLevel < this.unlockedLevels) {
+                    this.player = null;
+                    this.loadLevel(this.selectedLevel);
+                    this.save(); // salvar skin escolhida
+                }
+            } else if (code === 'Escape') {
+                this.state = STATE.CHARACTER_SELECT;
+                this.selectTime = 0;
             }
         } else if (this.state === STATE.VICTORY && code === 'Enter') {
             const nextIndex = this.currentLevelIndex + 1;
@@ -504,10 +757,15 @@ export class Game {
             }
         } else if (this.state === STATE.VICTORY && code === 'KeyR') {
             this.player = null;
-            this.loadLevel(0);
+            this.state = STATE.LEVEL_SELECT;
+            this.levelSelectTime = 0;
         } else if (this.state === STATE.GAME_OVER && code === 'KeyR') {
             this.player = null;
-            this.loadLevel(0);
+            this.loadLevel(this.currentLevelIndex);
+        } else if (this.state === STATE.GAME_OVER && code === 'Escape') {
+            this.player = null;
+            this.state = STATE.LEVEL_SELECT;
+            this.levelSelectTime = 0;
         }
     }
 

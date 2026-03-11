@@ -88,8 +88,10 @@ Jogo de plataforma 2D para web com HTML5 Canvas.
 
 - [ ] Sistema de checkpoints (bandeiras/totens que salvam progresso na fase)
 - [ ] Respawn no ultimo checkpoint ao morrer (em vez de reiniciar a fase)
-- [ ] Salvar progresso no `localStorage` (fase atual, pontuacao, vidas)
-- [ ] Carregar save ao abrir o jogo (botao "Continuar" no menu)
+- [x] Salvar progresso no `localStorage` (fases desbloqueadas, recorde, skin)
+- [x] Carregar save ao abrir o jogo (progresso restaurado automaticamente)
+- [x] Seletor de fases (tela com cards, fases bloqueadas/desbloqueadas)
+- [x] Game Over: R para tentar novamente a mesma fase, ESC para seletor
 
 ## Fase 10 - Mecanicas Avancadas de Movimento
 
