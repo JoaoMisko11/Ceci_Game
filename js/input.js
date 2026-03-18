@@ -3,6 +3,9 @@ export class Input {
         this.keys = {};
         this.justPressed = {};
 
+        // Touch state (preenchido pelo TouchControls)
+        this.touch = null;
+
         window.addEventListener('keydown', (e) => {
             if (!this.keys[e.code]) {
                 this.justPressed[e.code] = true;
@@ -29,22 +32,27 @@ export class Input {
     }
 
     get left() {
-        return this.isPressed('ArrowLeft') || this.isPressed('KeyA');
+        return this.isPressed('ArrowLeft') || this.isPressed('KeyA') ||
+            (this.touch && this.touch.leftPressed);
     }
 
     get right() {
-        return this.isPressed('ArrowRight') || this.isPressed('KeyD');
+        return this.isPressed('ArrowRight') || this.isPressed('KeyD') ||
+            (this.touch && this.touch.rightPressed);
     }
 
     get jump() {
-        return this.isPressed('ArrowUp') || this.isPressed('KeyW') || this.isPressed('Space');
+        return this.isPressed('ArrowUp') || this.isPressed('KeyW') || this.isPressed('Space') ||
+            (this.touch && this.touch.jumpPressed);
     }
 
     get jumpPressed() {
-        return this.wasJustPressed('ArrowUp') || this.wasJustPressed('KeyW') || this.wasJustPressed('Space');
+        return this.wasJustPressed('ArrowUp') || this.wasJustPressed('KeyW') || this.wasJustPressed('Space') ||
+            (this.touch && this.touch.jumpJustPressed);
     }
 
     get punchPressed() {
-        return this.wasJustPressed('KeyX') || this.wasJustPressed('KeyZ');
+        return this.wasJustPressed('KeyX') || this.wasJustPressed('KeyZ') ||
+            (this.touch && this.touch.punchJustPressed);
     }
 }

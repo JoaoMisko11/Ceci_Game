@@ -6,6 +6,7 @@ import { Level } from './level.js';
 import { drawPlayer, drawPunch, drawEnemy, drawItem, drawBackground, drawPlayerPreview, drawWater, SKINS } from './renderer.js';
 import { playJumpSound, playCoinSound, playStarSound, playDamageSound, playEnemyKillSound, playGameOverSound, playPunchSound, playPunchHitSound } from './audio.js';
 import { ParticleSystem } from './particles.js';
+import { TouchControls } from './touch.js';
 
 const STATE = {
     TITLE: 'title',
@@ -37,6 +38,8 @@ export class Game {
         this.lastTime = 0;
 
         this.input = new Input();
+        this.touchControls = new TouchControls(canvas);
+        this.input.touch = this.touchControls;
         this.camera = new Camera(canvas.width, canvas.height);
         this.particles = new ParticleSystem();
         this.player = null;
@@ -124,6 +127,7 @@ export class Game {
         this.render();
 
         this.input.endFrame();
+        this.touchControls.endFrame();
         requestAnimationFrame((timestamp) => this.gameLoop(timestamp));
     }
 
@@ -351,6 +355,7 @@ export class Game {
         this.camera.resetTransform(ctx);
 
         this.renderHUD();
+        this.touchControls.render(ctx);
 
         if (this.state === STATE.GAME_OVER) {
             this.renderGameOver();
@@ -385,7 +390,8 @@ export class Game {
         if (Math.floor(this.titleTime * 2) % 2 === 0) {
             ctx.fillStyle = '#fff';
             ctx.font = '20px monospace';
-            ctx.fillText('Pressione ENTER para jogar', w / 2, h / 2 + 60);
+            const touchMsg = this.touchControls.active ? 'Toque para jogar' : 'Pressione ENTER para jogar';
+            ctx.fillText(touchMsg, w / 2, h / 2 + 60);
         }
 
         // Mostrar high score se tiver save
@@ -397,7 +403,11 @@ export class Game {
 
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.font = '14px monospace';
-        ctx.fillText('Setas/WASD = Mover  |  Espaco = Pular  |  X/Z = Soco', w / 2, h - 40);
+        if (this.touchControls.active) {
+            ctx.fillText('Joystick = Mover  |  Botoes = Pular / Socar', w / 2, h - 40);
+        } else {
+            ctx.fillText('Setas/WASD = Mover  |  Espaco = Pular  |  X/Z = Soco', w / 2, h - 40);
+        }
     }
 
     renderHUD() {
@@ -446,10 +456,17 @@ export class Game {
         ctx.fillStyle = '#fff';
         ctx.font = '20px monospace';
         ctx.fillText(`Pontuacao: ${this.player.score}`, canvas.width / 2, canvas.height / 2 + 30);
-        ctx.fillText('R = Tentar novamente', canvas.width / 2, canvas.height / 2 + 65);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.font = '16px monospace';
-        ctx.fillText('ESC = Selecao de fases', canvas.width / 2, canvas.height / 2 + 95);
+        if (this.touchControls.active) {
+            ctx.fillText('Toque acima = Tentar novamente', canvas.width / 2, canvas.height / 2 + 65);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.font = '16px monospace';
+            ctx.fillText('Toque abaixo = Selecao de fases', canvas.width / 2, canvas.height / 2 + 95);
+        } else {
+            ctx.fillText('R = Tentar novamente', canvas.width / 2, canvas.height / 2 + 65);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.font = '16px monospace';
+            ctx.fillText('ESC = Selecao de fases', canvas.width / 2, canvas.height / 2 + 95);
+        }
     }
 
     renderVictory() {
@@ -477,13 +494,15 @@ export class Game {
         ctx.fillStyle = '#fff';
         ctx.font = '20px monospace';
         if (hasNextLevel) {
-            ctx.fillText('ENTER = Proxima fase', canvas.width / 2, canvas.height / 2 + 80);
+            const nextMsg = this.touchControls.active ? 'Toque acima = Proxima fase' : 'ENTER = Proxima fase';
+            ctx.fillText(nextMsg, canvas.width / 2, canvas.height / 2 + 80);
         } else {
             ctx.fillText('Parabens! Voce completou o jogo!', canvas.width / 2, canvas.height / 2 + 80);
         }
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.font = '16px monospace';
-        ctx.fillText('R = Selecao de fases', canvas.width / 2, canvas.height / 2 + 110);
+        const selectMsg = this.touchControls.active ? 'Toque abaixo = Selecao de fases' : 'R = Selecao de fases';
+        ctx.fillText(selectMsg, canvas.width / 2, canvas.height / 2 + 110);
 
         // Salvo automaticamente
         ctx.fillStyle = 'rgba(46, 204, 113, 0.6)';
@@ -574,12 +593,15 @@ export class Game {
         if (Math.floor(this.selectTime * 2) % 2 === 0) {
             ctx.fillStyle = '#fff';
             ctx.font = '20px monospace';
-            ctx.fillText('Pressione ENTER para confirmar', w / 2, h - 80);
+            const msg = this.touchControls.active ? 'Toque no personagem para jogar' : 'Pressione ENTER para confirmar';
+            ctx.fillText(msg, w / 2, h - 80);
         }
 
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.font = '14px monospace';
-        ctx.fillText('Setas <- -> para escolher', w / 2, h - 40);
+        if (!this.touchControls.active) {
+            ctx.fillText('Setas <- -> para escolher', w / 2, h - 40);
+        }
     }
 
     renderLevelSelect() {
@@ -696,7 +718,9 @@ export class Game {
         if (Math.floor(this.levelSelectTime * 2) % 2 === 0) {
             ctx.fillStyle = '#fff';
             ctx.font = '20px monospace';
-            if (this.selectedLevel < this.unlockedLevels) {
+            if (this.touchControls.active) {
+                ctx.fillText('Toque na fase para jogar', w / 2, h - 80);
+            } else if (this.selectedLevel < this.unlockedLevels) {
                 ctx.fillText('Pressione ENTER para jogar', w / 2, h - 80);
             } else {
                 ctx.fillStyle = '#e74c3c';
@@ -706,7 +730,9 @@ export class Game {
 
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.font = '14px monospace';
-        ctx.fillText('Setas <- -> para escolher  |  ESC para voltar', w / 2, h - 40);
+        if (!this.touchControls.active) {
+            ctx.fillText('Setas <- -> para escolher  |  ESC para voltar', w / 2, h - 40);
+        }
 
         // High score
         if (this.highScore > 0) {
@@ -769,7 +795,91 @@ export class Game {
         }
     }
 
+    handleTap(x, y) {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        if (this.state === STATE.TITLE) {
+            this.state = STATE.CHARACTER_SELECT;
+            this.selectTime = 0;
+            return;
+        }
+
+        if (this.state === STATE.CHARACTER_SELECT) {
+            const spacing = Math.min(220, w / 4);
+            const baseX = w / 2;
+            const baseY = h / 2 - 20;
+
+            for (let i = 0; i < 3; i++) {
+                const px = baseX + (i - 1) * spacing;
+                const dist = Math.hypot(x - px, y - baseY);
+                if (dist < 70) {
+                    this.selectedSkin = i;
+                    // Segundo toque no mesmo personagem confirma
+                    this.state = STATE.LEVEL_SELECT;
+                    this.levelSelectTime = 0;
+                    this.selectedLevel = 0;
+                    return;
+                }
+            }
+            return;
+        }
+
+        if (this.state === STATE.LEVEL_SELECT) {
+            const spacing = Math.min(200, (w - 100) / LEVELS.length);
+            const baseX = w / 2;
+            const baseY = h / 2 - 30;
+
+            for (let i = 0; i < LEVELS.length; i++) {
+                const px = baseX + (i - Math.floor(LEVELS.length / 2)) * spacing;
+                const cardW = 140;
+                const cardH = 160;
+                const cx = px - cardW / 2;
+                const cy = baseY - cardH / 2;
+
+                if (x >= cx && x <= cx + cardW && y >= cy && y <= cy + cardH) {
+                    if (i < this.unlockedLevels) {
+                        this.selectedLevel = i;
+                        this.player = null;
+                        this.loadLevel(i);
+                        this.save();
+                    }
+                    return;
+                }
+            }
+            return;
+        }
+
+        if (this.state === STATE.GAME_OVER) {
+            // Toque na metade superior = tentar novamente
+            if (y < h * 0.6) {
+                this.player = null;
+                this.loadLevel(this.currentLevelIndex);
+            } else {
+                // Metade inferior = seletor de fases
+                this.player = null;
+                this.state = STATE.LEVEL_SELECT;
+                this.levelSelectTime = 0;
+            }
+            return;
+        }
+
+        if (this.state === STATE.VICTORY) {
+            const hasNextLevel = this.currentLevelIndex + 1 < LEVELS.length;
+            if (hasNextLevel && y < h * 0.6) {
+                const nextIndex = this.currentLevelIndex + 1;
+                this.loadLevel(nextIndex);
+            } else {
+                this.player = null;
+                this.state = STATE.LEVEL_SELECT;
+                this.levelSelectTime = 0;
+            }
+            return;
+        }
+    }
+
     resize() {
         this.camera.resize(this.canvas.width, this.canvas.height);
+        this.touchControls.updateLayout();
     }
 }

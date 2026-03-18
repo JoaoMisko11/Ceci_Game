@@ -18,5 +18,15 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resize);
     window.addEventListener('keydown', (e) => game.handleKey(e.code));
 
+    // Tap para navegar menus no mobile
+    canvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            const x = touch.clientX * (canvas.width / canvas.clientWidth);
+            const y = touch.clientY * (canvas.height / canvas.clientHeight);
+            game.handleTap(x, y);
+        }
+    });
+
     game.start();
 });

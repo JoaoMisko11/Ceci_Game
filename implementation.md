@@ -125,11 +125,13 @@ Jogo de plataforma 2D para web com HTML5 Canvas.
 - [ ] Tilesheet para background com parallax real
 - [ ] Animacoes de transicao entre fases (fade in/out)
 
-## Fase 14 - Mobile e Acessibilidade
+## Fase 14 - Mobile e Acessibilidade ✅ (parcial)
 
-- [ ] Controles touch (joystick virtual + botoes de acao)
-- [ ] Detectar dispositivo e alternar entre teclado/touch
-- [ ] Redimensionamento responsivo do canvas
+- [x] Controles touch (joystick virtual + botoes de acao)
+- [x] Detectar dispositivo e alternar entre teclado/touch
+- [x] Redimensionamento responsivo do canvas
+- [x] Navegacao por toque nos menus (titulo, selecao, game over, vitoria)
+- [x] Instrucoes adaptativas (mostram controles touch ou teclado conforme o dispositivo)
 - [ ] Pause ao perder foco da aba/janela
 - [ ] Configuracoes (volume, dificuldade, remapear teclas)
 
