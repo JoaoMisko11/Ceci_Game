@@ -58,6 +58,64 @@ Instale o Node.js em https://nodejs.org (basta baixar e instalar, depois rodar `
 - Progresso salvo automaticamente (localStorage)
 - PWA — instalavel e funciona offline
 
+## Jogar Online
+
+O jogo esta publicado via GitHub Pages:
+
+**https://joaomisko11.github.io/Ceci_Game/**
+
+Basta abrir o link no navegador (desktop ou celular).
+
+## Instalar como App (PWA)
+
+O Ceci Game e uma Progressive Web App — pode ser instalado no celular ou desktop e funciona offline.
+
+### Android (Chrome)
+1. Abra o link do jogo no Chrome
+2. Toque nos 3 pontinhos (menu) → **"Instalar app"** (ou aguarde o banner automatico)
+3. O jogo aparece na sua tela inicial como um app
+
+### iPhone / iPad (Safari)
+1. Abra o link do jogo no Safari
+2. Toque no botao de compartilhar (icone ↑)
+3. Toque em **"Adicionar a Tela de Inicio"**
+4. Confirme tocando em **"Adicionar"**
+
+### Desktop (Chrome / Edge)
+1. Abra o link do jogo no navegador
+2. Clique no icone de instalacao (⊕) na barra de endereco
+3. Confirme a instalacao
+
+Depois de instalado, o jogo abre em tela cheia e funciona mesmo sem internet.
+
+## Deploy (GitHub Pages)
+
+O projeto esta configurado para deploy automatico via GitHub Pages. Qualquer push na branch `main` atualiza o site.
+
+### Como foi configurado
+1. Repositorio tornado publico (GitHub Pages gratuito exige repo publico)
+2. GitHub Pages ativado em **Settings → Pages → Source: main, pasta /**
+3. Arquivos PWA adicionados ao projeto:
+   - `manifest.json` — metadados do app (nome, icones, orientacao, tema)
+   - `sw.js` — Service Worker que faz cache de todos os arquivos para funcionar offline
+   - `icons/` — icones do app em 192x192 e 512x512
+
+### Como atualizar o site
+```bash
+git add .
+git commit -m "sua mensagem"
+git push origin main
+```
+O deploy leva cerca de 1-2 minutos para ficar disponivel.
+
+### Como atualizar o cache offline
+Se voce alterou arquivos do jogo, incremente a versao do cache no `sw.js`:
+```js
+// Mude 'ceci-game-v1' para 'ceci-game-v2', etc.
+const CACHE_NAME = 'ceci-game-v2';
+```
+Isso forca os dispositivos que ja instalaram a baixar os arquivos atualizados.
+
 ## Stack
 
 - **JavaScript** (ES6 modules)
@@ -69,13 +127,16 @@ Instale o Node.js em https://nodejs.org (basta baixar e instalar, depois rodar `
 
 ```
 Ceci_Game/
-├── index.html
+├── index.html          # Pagina principal
+├── manifest.json       # Web App Manifest (PWA)
+├── sw.js               # Service Worker (cache offline)
 ├── css/style.css
+├── icons/              # Icones do PWA (192 e 512)
 ├── js/
 │   ├── main.js         # Entry point e game loop
 │   ├── game.js         # Orquestrador e maquina de estados
 │   ├── player.js       # Jogador (movimento, pulo, soco)
-│   ├── enemy.js        # Inimigos (patrulha, voador)
+│   ├── enemy.js        # Inimigos (patrulha, voador, nadador)
 │   ├── item.js         # Coletaveis (moedas, estrelas)
 │   ├── powerup.js      # Power-ups temporarios
 │   ├── platform.js     # Plataformas e colisao AABB
