@@ -4,23 +4,32 @@ Jogo de plataforma 2D para web, feito com HTML5 Canvas e JavaScript puro.
 
 ## Como Rodar
 
-O projeto usa ES6 modules, entao precisa de um servidor local (abrir o HTML direto no navegador nao funciona).
+> **IMPORTANTE:** Nao funciona abrir o `index.html` direto no navegador (duplo clique).
+> O projeto usa ES6 modules, que exigem um servidor HTTP local.
 
-**Opcao 1 — Live Server (VSCode):**
-1. Instale a extensao [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer)
-2. Clique com botao direito no `index.html` → "Open with Live Server"
+### Jeito mais rapido (escolha UM):
 
-**Opcao 2 — npx (sem instalar nada):**
+**Se voce tem Node.js instalado:**
 ```bash
+cd Ceci_Game
 npx serve .
 ```
 Acesse `http://localhost:3000` no navegador.
 
-**Opcao 3 — Python:**
+**Se voce tem Python instalado:**
 ```bash
+cd Ceci_Game
 python3 -m http.server 8000
 ```
 Acesse `http://localhost:8000` no navegador.
+
+**Se voce usa VSCode:**
+1. Instale a extensao [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer)
+2. Clique com botao direito no `index.html` → "Open with Live Server"
+
+### Nao tem Node.js nem Python?
+
+Instale o Node.js em https://nodejs.org (basta baixar e instalar, depois rodar `npx serve .` na pasta do projeto).
 
 ## Como Jogar
 
@@ -35,15 +44,19 @@ Acesse `http://localhost:8000` no navegador.
 ## Funcionalidades
 
 - 3 personagens selecionaveis (Luna, Mei, Leo)
-- 2 fases com dificuldade progressiva
-- Inimigos terrestres e voadores com IA de patrulha
+- 3 fases com dificuldade progressiva (tutorial, avancado, aquatico)
+- Seletor de fases com progresso salvo
+- Inimigos terrestres, voadores e nadadores com IA de patrulha
 - Plataformas moveis e quebraveis
+- Zonas de agua com fisica aquatica
 - Power-ups temporarios (velocidade, pulo duplo)
 - Mecanica de soco para atacar inimigos
 - Efeitos sonoros sintetizados via Web Audio API
 - Sistema de particulas (poeira, brilho, explosoes)
 - Background com parallax (ceu, estrelas, montanhas)
 - Tela de titulo, selecao de personagem, HUD, game over e vitoria
+- Progresso salvo automaticamente (localStorage)
+- PWA — instalavel e funciona offline
 
 ## Stack
 

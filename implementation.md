@@ -133,6 +133,15 @@ Jogo de plataforma 2D para web com HTML5 Canvas.
 - [ ] Pause ao perder foco da aba/janela
 - [ ] Configuracoes (volume, dificuldade, remapear teclas)
 
+## Fase 15 - PWA (Progressive Web App) ✅
+
+- [x] Criar `manifest.json` (nome, icones, display fullscreen, orientacao landscape)
+- [x] Criar `sw.js` — Service Worker com cache-first para funcionamento offline
+- [x] Gerar icones PWA (192x192 e 512x512)
+- [x] Atualizar `index.html` com meta tags PWA, link do manifest e registro do SW
+- [x] Suporte a Apple Web App (meta tags apple-mobile-web-app)
+- [ ] Testar instalacao em dispositivo real
+
 ---
 
 ## Notas Tecnicas
