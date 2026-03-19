@@ -144,6 +144,51 @@ Jogo de plataforma 2D para web com HTML5 Canvas.
 - [x] Suporte a Apple Web App (meta tags apple-mobile-web-app)
 - [ ] Testar instalacao em dispositivo real
 
+## Fase 16 - Qualidade e Seguranca (parcial)
+
+### Fase 16.1 - Correcoes Criticas ✅
+
+- [x] Corrigir bug do punch timer (`===` para `>=` com tolerancia de dt) em `game.js`
+- [x] Documentar logica de desbloqueio de fases (`+2` e conversao 0-based para 1-based) em `game.js`
+- [x] Validar dados do localStorage com type checking em `game.js:loadSave()`
+- [x] Adicionar Content Security Policy (CSP) no `index.html`
+- [x] Corrigir service worker: error handling individual por asset, fallback offline, cache v4
+- [x] Remover codigo morto: `enemy.render()`, `item.render()`, `platform.platformVx`
+- [x] Adicionar error handling no `Level.load()` (validacao de resposta e campos obrigatorios)
+- [x] Adicionar error handling na inicializacao do canvas em `main.js`
+- [x] Adicionar try-catch no `loadLevel()` em `game.js`
+
+### Fase 16.2 - Extrair Constantes
+
+- [ ] Criar `js/constants.js` com constantes de gameplay
+- [ ] Criar `js/skins-data.js` com definicoes visuais dos personagens
+- [ ] Substituir magic numbers por constantes nomeadas
+
+### Fase 16.3 - Refatorar God Class (game.js)
+
+- [ ] Extrair `js/state-manager.js`
+- [ ] Extrair `js/collision.js`
+- [ ] Extrair `js/save-manager.js`
+- [ ] Extrair `js/menu-renderer.js`
+
+### Fase 16.4 - Testes
+
+- [ ] Configurar Vitest
+- [ ] Testes unitarios: camera, player, platform, enemy, item
+- [ ] Testes de integracao: transicoes de estado, save/load
+
+### Fase 16.5 - Performance
+
+- [ ] Spatial hashing para colisao
+- [ ] Object pooling para particulas
+- [ ] Cache de gradientes no renderer
+- [ ] Cleanup de event listeners (AbortController)
+
+### Fase 16.6 - Reduzir Duplicacao no Renderer
+
+- [ ] Funcao base `drawCharacterBody()` compartilhada entre skins
+- [ ] Parametrizar cores e offsets via objeto de skin
+
 ---
 
 ## Notas Tecnicas

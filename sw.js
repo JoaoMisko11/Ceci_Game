@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ceci-game-v3';
+const CACHE_NAME = 'ceci-game-v4';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -25,10 +25,17 @@ const ASSETS_TO_CACHE = [
 ];
 
 // Instala o service worker e faz cache de todos os assets
+// Usa cache individual para nao falhar se um asset estiver indisponivel
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return Promise.allSettled(
+        ASSETS_TO_CACHE.map((url) =>
+          cache.add(url).catch((err) => {
+            console.warn(`Falha ao cachear ${url}:`, err);
+          })
+        )
+      );
     })
   );
   self.skipWaiting();
@@ -48,7 +55,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Estrategia cache-first (ideal para jogo offline)
+// Estrategia cache-first com fallback para rede
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
@@ -56,15 +63,23 @@ self.addEventListener('fetch', (event) => {
         return cachedResponse;
       }
       return fetch(event.request).then((response) => {
-        // Nao cachear respostas invalidas
+        // Nao cachear respostas invalidas ou de origens externas
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
         const responseToCache = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseToCache);
+        }).catch(() => {
+          // Falha ao abrir cache — ignorar
         });
         return response;
+      }).catch(() => {
+        // Rede indisponivel e nao esta no cache — retornar fallback
+        if (event.request.mode === 'navigate') {
+          return caches.match('./index.html');
+        }
+        return new Response('', { status: 408, statusText: 'Offline' });
       });
     })
   );

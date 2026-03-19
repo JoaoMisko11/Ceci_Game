@@ -152,11 +152,6 @@ export function resolveCollision(player, platform) {
             platform.startBreaking();
         }
 
-        // Jogador se move junto com plataforma movel
-        if (platform.type === 'moving') {
-            player.platformVx = platform.moveDistX !== 0 ? platform.moveSpeed * platform.moveDir * (platform.moveDistX > 0 ? 1 : -1) : 0;
-        }
-
         return 'top';
     } else if (minOverlap === overlapBottom) {
         player.y = platform.y + platform.h;

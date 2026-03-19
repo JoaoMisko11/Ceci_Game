@@ -78,7 +78,13 @@ export class Level {
 
     static async load(path) {
         const response = await fetch(path);
+        if (!response.ok) {
+            throw new Error(`Falha ao carregar nivel ${path}: ${response.status}`);
+        }
         const data = await response.json();
+        if (!data || !data.platforms || !data.playerStart) {
+            throw new Error(`Dados do nivel ${path} invalidos: faltam campos obrigatorios`);
+        }
         return new Level(data);
     }
 }

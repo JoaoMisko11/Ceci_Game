@@ -312,8 +312,8 @@
         <div class="cards">
             <div class="card">
                 <div class="card-name"><code>index.html</code></div>
-                <div class="card-desc">Pagina principal com elemento &lt;canvas&gt; e carregamento dos modulos</div>
-                <div class="card-tags"><span class="tag">entry point</span></div>
+                <div class="card-desc">Pagina principal com &lt;canvas&gt;, carregamento dos modulos e Content Security Policy (CSP)</div>
+                <div class="card-tags"><span class="tag">entry point</span><span class="tag">csp</span></div>
             </div>
             <div class="card">
                 <div class="card-name"><code>implementation.md</code></div>
@@ -332,8 +332,8 @@
             </div>
             <div class="card">
                 <div class="card-name"><code>sw.js</code></div>
-                <div class="card-desc">Service Worker — cache-first para funcionamento offline</div>
-                <div class="card-tags"><span class="tag">pwa</span><span class="tag">offline</span></div>
+                <div class="card-desc">Service Worker — cache-first com fallback offline, error handling individual por asset</div>
+                <div class="card-tags"><span class="tag">pwa</span><span class="tag">offline</span><span class="tag">resiliente</span></div>
             </div>
         </div>
     </div>
@@ -360,13 +360,13 @@
             <div class="cards">
                 <div class="card">
                     <div class="card-name"><code>main.js</code></div>
-                    <div class="card-desc">Entry point — cria instancia do Game e inicia o requestAnimationFrame loop</div>
-                    <div class="card-tags"><span class="tag">init</span><span class="tag">loop</span></div>
+                    <div class="card-desc">Entry point — cria instancia do Game e inicia o loop. Valida canvas e contexto 2D</div>
+                    <div class="card-tags"><span class="tag">init</span><span class="tag">loop</span><span class="tag">validacao</span></div>
                 </div>
                 <div class="card highlight">
                     <div class="card-name"><code>game.js</code></div>
-                    <div class="card-desc">Classe Game — orquestra init, update e render. Maquina de estados (title, characterSelect, levelSelect, playing, gameover, victory). Seletor de fases, save/load via localStorage</div>
-                    <div class="card-tags"><span class="tag">orquestrador</span><span class="tag">estados</span><span class="tag">skins</span><span class="tag">save</span><span class="tag">fases</span></div>
+                    <div class="card-desc">Classe Game — orquestra init, update e render. Maquina de estados, seletor de fases, save/load com validacao de tipos via localStorage</div>
+                    <div class="card-tags"><span class="tag">orquestrador</span><span class="tag">estados</span><span class="tag">skins</span><span class="tag">save</span><span class="tag">fases</span><span class="tag">validacao</span></div>
                 </div>
             </div>
         </div>
@@ -404,8 +404,8 @@
             <div class="cards">
                 <div class="card">
                     <div class="card-name"><code>level.js</code></div>
-                    <div class="card-desc">Carrega niveis de JSON, gerencia fases, progressao e zonas de agua</div>
-                    <div class="card-tags"><span class="tag">json</span><span class="tag">fases</span><span class="tag">agua</span></div>
+                    <div class="card-desc">Carrega niveis de JSON com validacao, gerencia fases, progressao e zonas de agua</div>
+                    <div class="card-tags"><span class="tag">json</span><span class="tag">fases</span><span class="tag">agua</span><span class="tag">validacao</span></div>
                 </div>
                 <div class="card">
                     <div class="card-name"><code>platform.js</code></div>

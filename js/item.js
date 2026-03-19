@@ -18,22 +18,6 @@ export class Item {
         this.y = this.baseY + Math.sin(this.floatTime) * 4;
     }
 
-    render(ctx) {
-        if (this.collected) return;
-
-        if (this.type === 'coin') {
-            ctx.fillStyle = '#f1c40f';
-            ctx.beginPath();
-            ctx.arc(this.x + this.w / 2, this.y + this.h / 2, this.w / 2, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (this.type === 'star') {
-            ctx.fillStyle = '#e67e22';
-            ctx.beginPath();
-            ctx.arc(this.x + this.w / 2, this.y + this.h / 2, this.w / 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
-
     collect() {
         this.collected = true;
         return this.type === 'star' ? 50 : 10;

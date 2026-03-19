@@ -67,8 +67,21 @@ export class Game {
 
     loadSave() {
         try {
-            const data = localStorage.getItem(SAVE_KEY);
-            return data ? JSON.parse(data) : {};
+            const raw = localStorage.getItem(SAVE_KEY);
+            if (!raw) return {};
+            const data = JSON.parse(raw);
+            // Validar tipos dos campos esperados
+            if (typeof data !== 'object' || data === null) return {};
+            if (data.unlockedLevels !== undefined && (typeof data.unlockedLevels !== 'number' || data.unlockedLevels < 1)) {
+                data.unlockedLevels = 1;
+            }
+            if (data.highScore !== undefined && (typeof data.highScore !== 'number' || data.highScore < 0)) {
+                data.highScore = 0;
+            }
+            if (data.skin !== undefined && (typeof data.skin !== 'number' || data.skin < 0 || data.skin > 2)) {
+                data.skin = 0;
+            }
+            return data;
         } catch {
             return {};
         }
@@ -99,7 +112,13 @@ export class Game {
 
     async loadLevel(index) {
         this.currentLevelIndex = index;
-        this.level = await Level.load(LEVELS[index]);
+        try {
+            this.level = await Level.load(LEVELS[index]);
+        } catch (err) {
+            console.error('Erro ao carregar nivel:', err);
+            this.state = STATE.LEVEL_SELECT;
+            return;
+        }
         const start = this.level.playerStart;
 
         // Manter pontuacao e vidas entre fases
@@ -160,8 +179,8 @@ export class Game {
         this.level.update(dt);
         this.particles.update(dt);
 
-        // Som do soco
-        if (this.player.punching && this.player.punchTimer === this.player.PUNCH_DURATION) {
+        // Som do soco (dispara quando o soco inicia — punchTimer proximo de PUNCH_DURATION)
+        if (this.player.punching && this.player.punchTimer >= this.player.PUNCH_DURATION - dt) {
             playPunchSound();
         }
 
@@ -278,9 +297,11 @@ export class Game {
             this.state = STATE.VICTORY;
 
             // Desbloquear proxima fase e salvar
-            const nextLevel = this.currentLevelIndex + 2; // +2 porque unlockedLevels e 1-based
-            if (nextLevel > this.unlockedLevels) {
-                this.unlockedLevels = Math.min(nextLevel, LEVELS.length);
+            // unlockedLevels e 1-based (1 = so fase 0 desbloqueada)
+            // currentLevelIndex e 0-based, entao +2 converte para 1-based da proxima fase
+            const nextUnlock = this.currentLevelIndex + 2;
+            if (nextUnlock > this.unlockedLevels) {
+                this.unlockedLevels = Math.min(nextUnlock, LEVELS.length);
             }
             if (this.player.score > this.highScore) {
                 this.highScore = this.player.score;

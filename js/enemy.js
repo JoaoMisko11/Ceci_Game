@@ -47,14 +47,6 @@ export class Enemy {
         }
     }
 
-    render(ctx) {
-        if (!this.alive) return;
-
-        // O renderer cuida do desenho visual
-        ctx.fillStyle = this.type === 'flyer' ? '#e67e22' : '#9b59b6';
-        ctx.fillRect(this.x, this.y, this.w, this.h);
-    }
-
     kill() {
         this.alive = false;
     }

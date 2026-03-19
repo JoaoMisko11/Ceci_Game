@@ -2,7 +2,15 @@ import { Game } from './game.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('gameCanvas');
+    if (!canvas) {
+        console.error('Canvas element #gameCanvas nao encontrado');
+        return;
+    }
     const ctx = canvas.getContext('2d');
+    if (!ctx) {
+        console.error('Nao foi possivel obter contexto 2D do canvas');
+        return;
+    }
 
     function resize() {
         canvas.width = window.innerWidth;
