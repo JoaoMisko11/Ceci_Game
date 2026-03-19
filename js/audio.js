@@ -91,3 +91,63 @@ export function playGameOverSound() {
     setTimeout(() => playTone(200, 0.3, 'square', 0.12), 400);
     setTimeout(() => playTone(150, 0.5, 'sawtooth', 0.1), 600);
 }
+
+// Fanfarra epica de vitoria do boss
+export function playBossVictorySound() {
+    // Acorde triunfante ascendente
+    playTone(523, 0.15, 'square', 0.1);  // C5
+    setTimeout(() => playTone(659, 0.15, 'square', 0.1), 120);  // E5
+    setTimeout(() => playTone(784, 0.15, 'square', 0.1), 240);  // G5
+    setTimeout(() => playTone(1047, 0.3, 'square', 0.12), 360); // C6
+
+    // Segunda onda — harmonia
+    setTimeout(() => {
+        playTone(784, 0.12, 'square', 0.08);
+        playTone(988, 0.12, 'square', 0.08);
+    }, 600);
+    setTimeout(() => {
+        playTone(1047, 0.12, 'square', 0.08);
+        playTone(1318, 0.12, 'square', 0.08);
+    }, 720);
+    setTimeout(() => {
+        playTone(1568, 0.5, 'square', 0.1);
+        playTone(1047, 0.5, 'square', 0.08);
+    }, 840);
+
+    // Rufar final
+    setTimeout(() => playTone(100, 0.08, 'sawtooth', 0.06), 1200);
+    setTimeout(() => playTone(120, 0.08, 'sawtooth', 0.06), 1280);
+    setTimeout(() => playTone(150, 0.08, 'sawtooth', 0.06), 1360);
+    setTimeout(() => {
+        playTone(1047, 0.6, 'square', 0.1);
+        playTone(1318, 0.6, 'square', 0.08);
+        playTone(1568, 0.6, 'square', 0.06);
+    }, 1440);
+}
+
+// Som de fogo de artificio (estouro)
+export function playFireworkSound() {
+    const ctx = getAudioContext();
+    const bufferSize = ctx.sampleRate * 0.15;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const gain = ctx.createGain();
+    gain.gain.value = 0.06;
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 2000;
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    noise.start();
+    noise.stop(ctx.currentTime + 0.15);
+
+    // Tom agudo de brilho
+    setTimeout(() => playTone(800 + Math.random() * 800, 0.1, 'sine', 0.04), 50);
+}

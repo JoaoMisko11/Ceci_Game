@@ -135,6 +135,80 @@ export class ParticleSystem {
         });
     }
 
+    // Explosao massiva do boss
+    bossExplosion(x, y, w, h) {
+        const cx = x + w / 2;
+        const cy = y + h / 2;
+        const colors = ['#8e44ad', '#9b59b6', '#c0392b', '#e74c3c', '#f39c12', '#f1c40f', '#2ecc71'];
+        for (let wave = 0; wave < 3; wave++) {
+            for (let i = 0; i < 20; i++) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const angle = (Math.PI * 2 / 20) * i + wave * 0.3;
+                const speed = 150 + wave * 80 + Math.random() * 100;
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.sin(angle) * speed;
+                const life = 1 + Math.random() * 1.5;
+                const size = 3 + Math.random() * 5;
+                this.particles.push(new Particle(cx, cy, vx, vy, life, color, size));
+            }
+        }
+    }
+
+    // Fogo de artificio — explode em posicao aleatoria
+    firework(canvasWidth, canvasHeight, cameraX, cameraY) {
+        const cx = cameraX + Math.random() * canvasWidth;
+        const cy = cameraY + Math.random() * canvasHeight * 0.6;
+        const colors = [
+            ['#e74c3c', '#ff6b6b', '#ffaaaa'],
+            ['#f1c40f', '#f9e547', '#fff3a0'],
+            ['#2ecc71', '#58d68d', '#abebc6'],
+            ['#3498db', '#5dade2', '#aed6f1'],
+            ['#9b59b6', '#c39bd3', '#d7bde2'],
+            ['#e67e22', '#f0b27a', '#fad7a0'],
+            ['#1abc9c', '#76d7c4', '#a3e4d7']
+        ];
+        const palette = colors[Math.floor(Math.random() * colors.length)];
+        const numParticles = 25 + Math.floor(Math.random() * 15);
+
+        for (let i = 0; i < numParticles; i++) {
+            const angle = (Math.PI * 2 / numParticles) * i + Math.random() * 0.3;
+            const speed = 80 + Math.random() * 160;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            const color = palette[Math.floor(Math.random() * palette.length)];
+            const life = 0.8 + Math.random() * 1.2;
+            const size = 2 + Math.random() * 4;
+            this.particles.push(new Particle(cx, cy, vx, vy, life, color, size));
+        }
+
+        // Sparkles centrais
+        for (let i = 0; i < 8; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 20 + Math.random() * 40;
+            this.particles.push(new Particle(
+                cx, cy,
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed,
+                0.5 + Math.random() * 0.5,
+                '#fff',
+                1 + Math.random() * 2
+            ));
+        }
+    }
+
+    // Chuva de estrelas douradas (caem do topo)
+    goldenRain(canvasWidth, cameraX, cameraY) {
+        const x = cameraX + Math.random() * canvasWidth;
+        const y = cameraY - 10;
+        const colors = ['#f1c40f', '#f39c12', '#e67e22', '#fff3a0'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const vx = (Math.random() - 0.5) * 40;
+        const vy = 30 + Math.random() * 60;
+        const life = 2 + Math.random() * 2;
+        const size = 2 + Math.random() * 3;
+        this.particles.push(new Particle(x, y, vx, vy, life, color, size));
+    }
+
     update(dt) {
         for (let i = this.particles.length - 1; i >= 0; i--) {
             this.particles[i].update(dt);

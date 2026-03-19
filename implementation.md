@@ -72,7 +72,8 @@ Jogo de plataforma 2D para web com HTML5 Canvas.
 - [x] Power-ups (velocidade 8s, pulo duplo 10s) com timer no HUD
 - [x] Sistema de progressao entre fases (ENTER na vitoria avanca)
 - [x] Fase 3 com zonas de agua e inimigos nadadores (swimmer)
-- [ ] Boss fight (opcional — futuro)
+- [x] Fase 4 — Oceano Profundo (fase inteira submersa, peixes inimigos, boss polvo)
+- [x] Boss fight: polvo gigante com 5 vidas, 3 fases de dificuldade, ataque de tinta
 
 ## Fase 8.5 - Mecanica de Soco ✅
 
@@ -109,13 +110,13 @@ Jogo de plataforma 2D para web com HTML5 Canvas.
 - [ ] Alavancas/botoes que abrem portas ou ativam plataformas
 - [ ] Plataformas que caem apos pisar
 
-## Fase 12 - Boss Fight
+## Fase 12 - Boss Fight ✅ (parcial)
 
-- [ ] Sistema de boss com fases (padrao de ataque muda conforme perde vida)
-- [ ] Barra de vida do boss no topo da tela
-- [ ] Arena fechada (camera trava no cenario do boss)
-- [ ] Projeteis que o boss dispara e o jogador desvia
-- [ ] Boss da Fase 2 diferente do da Fase 1
+- [x] Sistema de boss com fases (padrao de ataque muda conforme perde vida)
+- [x] Barra de vida do boss no topo da tela
+- [x] Arena fechada (paredes laterais na area do boss)
+- [x] Projeteis que o boss dispara (tinta) e o jogador desvia
+- [ ] Boss da Fase 2 diferente do da Fase 1 (futuro)
 
 ## Fase 13 - Sprites e Arte Final
 

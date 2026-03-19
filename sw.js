@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ceci-game-v4';
+const CACHE_NAME = 'ceci-game-v5';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -21,6 +21,7 @@ const ASSETS_TO_CACHE = [
   './assets/levels/level1.json',
   './assets/levels/level2.json',
   './assets/levels/level3.json',
+  './assets/levels/level4.json',
   './manifest.json'
 ];
 

@@ -408,6 +408,11 @@ export function drawWater(ctx, water) {
 export function drawEnemy(ctx, enemy) {
     if (!enemy.alive) return;
 
+    if (enemy.type === 'octopus') {
+        drawOctopus(ctx, enemy);
+        return;
+    }
+
     if (enemy.type === 'flyer') {
         drawFlyer(ctx, enemy);
         return;
@@ -556,6 +561,176 @@ function drawSwimmer(ctx, enemy) {
     ctx.beginPath();
     ctx.arc(x + w - 10 + eyeX + pShift, y + 12, 2, 0, Math.PI * 2);
     ctx.fill();
+}
+
+function drawOctopus(ctx, enemy) {
+    const { x, y, w, h, direction, tentacleTime, hitTimer, bossPhase, lives, maxLives } = enemy;
+
+    // Flash quando levou dano
+    if (hitTimer > 0 && Math.floor(hitTimer * 10) % 2 === 0) {
+        ctx.globalAlpha = 0.4;
+    }
+
+    // Cor muda conforme fase do boss
+    const bodyColor = bossPhase === 3 ? '#c0392b' : bossPhase === 2 ? '#8e44ad' : '#6c3483';
+    const lightColor = bossPhase === 3 ? '#e74c3c' : bossPhase === 2 ? '#a569bd' : '#8e44ad';
+
+    // Cabeca (domo oval)
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2, y + 20, w / 2, 24, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Manchas na cabeca
+    ctx.fillStyle = lightColor;
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2 - 10, y + 12, 8, 6, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2 + 12, y + 14, 6, 5, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tentaculos (8 tentaculos ondulando)
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    const tentacleBaseY = y + 38;
+    for (let i = 0; i < 8; i++) {
+        const tx = x + 8 + i * (w - 16) / 7;
+        const phase = tentacleTime * (3 + bossPhase) + i * 0.8;
+        const waveX = Math.sin(phase) * (6 + bossPhase * 2);
+        const waveX2 = Math.sin(phase + 1.5) * (4 + bossPhase);
+        const len = h - 38;
+
+        ctx.strokeStyle = i % 2 === 0 ? bodyColor : lightColor;
+        ctx.beginPath();
+        ctx.moveTo(tx, tentacleBaseY);
+        ctx.quadraticCurveTo(tx + waveX, tentacleBaseY + len * 0.5, tx + waveX2, tentacleBaseY + len);
+        ctx.stroke();
+
+        // Ventosas
+        ctx.fillStyle = 'rgba(255, 200, 200, 0.5)';
+        const dotY = tentacleBaseY + len * 0.4;
+        ctx.beginPath();
+        ctx.arc(tx + waveX * 0.5, dotY, 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Olhos grandes (expressivos)
+    const eyeSize = 12;
+    const eyeY = y + 18;
+    const leftEyeX = x + w / 2 - 16;
+    const rightEyeX = x + w / 2 + 16;
+
+    // Esclerótica
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.ellipse(leftEyeX, eyeY, eyeSize, eyeSize - 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(rightEyeX, eyeY, eyeSize, eyeSize - 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pupilas (olham na direcao do movimento)
+    const pupilShift = direction * 3;
+    ctx.fillStyle = bossPhase === 3 ? '#c0392b' : '#2c3e50';
+    ctx.beginPath();
+    ctx.arc(leftEyeX + pupilShift, eyeY, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(rightEyeX + pupilShift, eyeY, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Brilho nos olhos
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(leftEyeX + pupilShift - 2, eyeY - 2, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(rightEyeX + pupilShift - 2, eyeY - 2, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Boca irritada (muda com a fase)
+    ctx.strokeStyle = '#2c3e50';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (bossPhase >= 2) {
+        // Boca aberta — raiva
+        ctx.fillStyle = '#c0392b';
+        ctx.ellipse(x + w / 2, y + 32, 8, 4 + bossPhase, 0, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        ctx.moveTo(x + w / 2 - 8, y + 32);
+        ctx.quadraticCurveTo(x + w / 2, y + 36, x + w / 2 + 8, y + 32);
+        ctx.stroke();
+    }
+
+    // Sobrancelhas de raiva (mais intenso por fase)
+    ctx.strokeStyle = '#2c3e50';
+    ctx.lineWidth = 2 + bossPhase;
+    ctx.beginPath();
+    ctx.moveTo(leftEyeX - 8, eyeY - 10 - bossPhase);
+    ctx.lineTo(leftEyeX + 8, eyeY - 6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(rightEyeX + 8, eyeY - 10 - bossPhase);
+    ctx.lineTo(rightEyeX - 8, eyeY - 6);
+    ctx.stroke();
+
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 1;
+    ctx.lineCap = 'butt';
+
+    // Renderizar projeteis de tinta
+    for (const ink of enemy.inkAttacks) {
+        drawInkAttack(ctx, ink);
+    }
+}
+
+function drawInkAttack(ctx, ink) {
+    ctx.fillStyle = 'rgba(30, 0, 50, 0.8)';
+    ctx.beginPath();
+    ctx.arc(ink.x + ink.w / 2, ink.y + ink.h / 2, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Respingos ao redor
+    ctx.fillStyle = 'rgba(50, 0, 80, 0.5)';
+    ctx.beginPath();
+    ctx.arc(ink.x + ink.w / 2 + 4, ink.y + ink.h / 2 - 3, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(ink.x + ink.w / 2 - 3, ink.y + ink.h / 2 + 4, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+// Desenha barra de vida do boss
+export function drawBossHealthBar(ctx, enemy, canvasWidth) {
+    if (!enemy || !enemy.alive || !enemy.isBoss) return;
+
+    const barW = 300;
+    const barH = 16;
+    const barX = (canvasWidth - barW) / 2;
+    const barY = 14;
+
+    // Fundo
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    roundRect(ctx, barX - 4, barY - 4, barW + 8, barH + 8, 6);
+
+    // Barra de vida
+    const ratio = enemy.lives / enemy.maxLives;
+    const healthColor = ratio > 0.5 ? '#8e44ad' : ratio > 0.25 ? '#e67e22' : '#e74c3c';
+    ctx.fillStyle = '#333';
+    roundRect(ctx, barX, barY, barW, barH, 4);
+    ctx.fillStyle = healthColor;
+    if (ratio > 0) {
+        roundRect(ctx, barX, barY, barW * ratio, barH, 4);
+    }
+
+    // Nome do boss
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('POLVO GIGANTE', canvasWidth / 2, barY + 12);
+    ctx.textAlign = 'left';
 }
 
 // Desenha item com brilho

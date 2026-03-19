@@ -3,8 +3,8 @@ import { Input } from './input.js';
 import { checkAABB, resolveCollision } from './platform.js';
 import { Camera } from './camera.js';
 import { Level } from './level.js';
-import { drawPlayer, drawPunch, drawEnemy, drawItem, drawBackground, drawPlayerPreview, drawWater, SKINS } from './renderer.js';
-import { playJumpSound, playCoinSound, playStarSound, playDamageSound, playEnemyKillSound, playGameOverSound, playPunchSound, playPunchHitSound } from './audio.js';
+import { drawPlayer, drawPunch, drawEnemy, drawItem, drawBackground, drawPlayerPreview, drawWater, drawBossHealthBar, SKINS } from './renderer.js';
+import { playJumpSound, playCoinSound, playStarSound, playDamageSound, playEnemyKillSound, playGameOverSound, playPunchSound, playPunchHitSound, playBossVictorySound, playFireworkSound } from './audio.js';
 import { ParticleSystem } from './particles.js';
 import { TouchControls } from './touch.js';
 
@@ -14,19 +14,22 @@ const STATE = {
     LEVEL_SELECT: 'levelSelect',
     PLAYING: 'playing',
     GAME_OVER: 'gameOver',
-    VICTORY: 'victory'
+    VICTORY: 'victory',
+    BOSS_VICTORY: 'bossVictory'
 };
 
 const LEVELS = [
     'assets/levels/level1.json',
     'assets/levels/level2.json',
-    'assets/levels/level3.json'
+    'assets/levels/level3.json',
+    'assets/levels/level4.json'
 ];
 
 const LEVEL_NAMES = [
     'Fase 1 - Inicio',
     'Fase 2 - Desafio',
-    'Fase 3 - Profundezas'
+    'Fase 3 - Profundezas',
+    'Fase 4 - Oceano Profundo'
 ];
 
 const SAVE_KEY = 'ceciGameSave';
@@ -53,6 +56,11 @@ export class Game {
         // Seletor de fase
         this.selectedLevel = 0;
         this.levelSelectTime = 0;
+
+        // Animacao de vitoria do boss
+        this.bossVictoryTime = 0;
+        this.bossVictoryFireworkTimer = 0;
+        this.bossVictorySoundPlayed = false;
 
         // Save — carregar dados salvos
         this.saveData = this.loadSave();
@@ -166,6 +174,41 @@ export class Game {
             return;
         }
 
+        if (this.state === STATE.BOSS_VICTORY) {
+            this.bossVictoryTime += dt;
+            this.particles.update(dt);
+
+            // Tocar fanfarra na primeira vez
+            if (!this.bossVictorySoundPlayed) {
+                this.bossVictorySoundPlayed = true;
+                playBossVictorySound();
+            }
+
+            // Fogos de artificio continuos
+            this.bossVictoryFireworkTimer += dt;
+            const fireworkInterval = this.bossVictoryTime < 2 ? 0.15 : 0.3;
+            if (this.bossVictoryFireworkTimer >= fireworkInterval) {
+                this.bossVictoryFireworkTimer = 0;
+                this.particles.firework(
+                    this.canvas.width, this.canvas.height,
+                    this.camera.x, this.camera.y
+                );
+                playFireworkSound();
+            }
+
+            // Chuva de estrelas douradas
+            if (this.bossVictoryTime > 1) {
+                for (let i = 0; i < 3; i++) {
+                    this.particles.goldenRain(
+                        this.canvas.width,
+                        this.camera.x, this.camera.y
+                    );
+                }
+            }
+
+            return;
+        }
+
         if (this.state !== STATE.PLAYING) {
             this.particles.update(dt);
             return;
@@ -196,11 +239,24 @@ export class Game {
                         punchHit.x + (this.player.lastDirection >= 0 ? punchHit.w : 0),
                         punchHit.y + punchHit.h / 2
                     );
-                    this.particles.enemyExplosion(enemy.x, enemy.y, enemy.w, enemy.h);
-                    enemy.kill();
-                    this.player.score += 150;
-                    playPunchHitSound();
-                    playEnemyKillSound();
+                    if (enemy.isBoss) {
+                        if (enemy.takeDamage()) {
+                            playPunchHitSound();
+                            if (!enemy.alive) {
+                                this.particles.enemyExplosion(enemy.x, enemy.y, enemy.w, enemy.h);
+                                this.player.score += 500;
+                                playEnemyKillSound();
+                            } else {
+                                this.player.score += 50;
+                            }
+                        }
+                    } else {
+                        this.particles.enemyExplosion(enemy.x, enemy.y, enemy.w, enemy.h);
+                        enemy.kill();
+                        this.player.score += 150;
+                        playPunchHitSound();
+                        playEnemyKillSound();
+                    }
                 }
             }
         }
@@ -272,11 +328,25 @@ export class Game {
             const enemyRect = { x: enemy.x, y: enemy.y, w: enemy.w, h: enemy.h };
             if (checkAABB(playerRect, enemyRect)) {
                 if (this.player.vy > 0 && this.player.y + this.player.height - enemy.y < 20) {
-                    this.particles.enemyExplosion(enemy.x, enemy.y, enemy.w, enemy.h);
-                    enemy.kill();
-                    this.player.vy = -300;
-                    this.player.score += 100;
-                    playEnemyKillSound();
+                    if (enemy.isBoss) {
+                        if (enemy.takeDamage()) {
+                            this.player.vy = -300;
+                            this.player.score += 50;
+                            playEnemyKillSound();
+                            if (!enemy.alive) {
+                                this.particles.enemyExplosion(enemy.x, enemy.y, enemy.w, enemy.h);
+                                this.player.score += 500;
+                            }
+                        } else {
+                            this.player.vy = -300;
+                        }
+                    } else {
+                        this.particles.enemyExplosion(enemy.x, enemy.y, enemy.w, enemy.h);
+                        enemy.kill();
+                        this.player.vy = -300;
+                        this.player.score += 100;
+                        playEnemyKillSound();
+                    }
                 } else {
                     this.player.takeDamage();
                     if (!this.player.isAlive) {
@@ -289,12 +359,43 @@ export class Game {
                     }
                 }
             }
+
+            // Colisao com projeteis de tinta do boss
+            if (enemy.isBoss && enemy.alive) {
+                for (let i = enemy.inkAttacks.length - 1; i >= 0; i--) {
+                    const ink = enemy.inkAttacks[i];
+                    if (checkAABB(playerRect, ink)) {
+                        enemy.inkAttacks.splice(i, 1);
+                        this.player.takeDamage();
+                        if (!this.player.isAlive) {
+                            this.state = STATE.GAME_OVER;
+                            this.particles.damageParticles(this.player.x, this.player.y, this.player.width, this.player.height);
+                            playGameOverSound();
+                        } else {
+                            playDamageSound();
+                            this.particles.damageParticles(this.player.x, this.player.y, this.player.width, this.player.height);
+                        }
+                    }
+                }
+            }
         }
 
-        // Checar vitoria — todos os itens coletados
+        // Checar vitoria — todos os itens coletados E boss derrotado (se houver)
         const allCollected = this.level.items.length > 0 && this.level.items.every(i => i.collected);
-        if (allCollected) {
-            this.state = STATE.VICTORY;
+        const boss = this.level.enemies.find(e => e.isBoss);
+        const bossDefeated = !boss || !boss.alive;
+        if (allCollected && bossDefeated) {
+            // Se tinha boss, ir para animacao epica
+            if (boss) {
+                this.state = STATE.BOSS_VICTORY;
+                this.bossVictoryTime = 0;
+                this.bossVictoryFireworkTimer = 0;
+                this.bossVictorySoundPlayed = false;
+                // Explosao massiva no local do boss
+                this.particles.bossExplosion(boss.x || this.player.x, boss.y || this.player.y, boss.w || 80, boss.h || 70);
+            } else {
+                this.state = STATE.VICTORY;
+            }
 
             // Desbloquear proxima fase e salvar
             // unlockedLevels e 1-based (1 = so fase 0 desbloqueada)
@@ -376,10 +477,19 @@ export class Game {
         this.camera.resetTransform(ctx);
 
         this.renderHUD();
+
+        // Barra de vida do boss (se houver)
+        const activeBoss = this.level.enemies.find(e => e.isBoss && e.alive);
+        if (activeBoss) {
+            drawBossHealthBar(ctx, activeBoss, canvas.width);
+        }
+
         this.touchControls.render(ctx);
 
         if (this.state === STATE.GAME_OVER) {
             this.renderGameOver();
+        } else if (this.state === STATE.BOSS_VICTORY) {
+            this.renderBossVictory();
         } else if (this.state === STATE.VICTORY) {
             this.renderVictory();
         }
@@ -529,6 +639,208 @@ export class Game {
         ctx.fillStyle = 'rgba(46, 204, 113, 0.6)';
         ctx.font = '12px monospace';
         ctx.fillText('Progresso salvo automaticamente', canvas.width / 2, canvas.height / 2 + 140);
+    }
+
+    renderBossVictory() {
+        const { ctx, canvas } = this;
+        const w = canvas.width;
+        const h = canvas.height;
+        const t = this.bossVictoryTime;
+
+        // Fase 1 (0-2s): Flash branco + explosao
+        // Fase 2 (2-4s): Escurece + fogos
+        // Fase 3 (4-6s): Titulo aparece
+        // Fase 4 (6-8s): Mensagem principal
+        // Fase 5 (8s+): Tela final com instrucoes
+
+        // Overlay escurecendo progressivamente
+        const overlayAlpha = Math.min(0.85, t * 0.2);
+        ctx.fillStyle = `rgba(0, 0, 0, ${overlayAlpha})`;
+        ctx.fillRect(0, 0, w, h);
+
+        // Flash branco inicial (0-1s)
+        if (t < 1) {
+            const flashAlpha = (1 - t) * 0.8;
+            ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+            ctx.fillRect(0, 0, w, h);
+        }
+
+        // Raios de luz radiais (1-6s)
+        if (t > 1 && t < 7) {
+            const rayAlpha = Math.min(0.15, (t - 1) * 0.05) * (t < 6 ? 1 : (7 - t));
+            ctx.save();
+            ctx.translate(w / 2, h / 2);
+            const numRays = 16;
+            for (let i = 0; i < numRays; i++) {
+                const angle = (Math.PI * 2 / numRays) * i + t * 0.2;
+                ctx.fillStyle = `rgba(241, 196, 15, ${rayAlpha})`;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                const rayLen = Math.max(w, h);
+                ctx.lineTo(Math.cos(angle - 0.05) * rayLen, Math.sin(angle - 0.05) * rayLen);
+                ctx.lineTo(Math.cos(angle + 0.05) * rayLen, Math.sin(angle + 0.05) * rayLen);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        // Circulos de onda expandindo (1.5-5s)
+        if (t > 1.5 && t < 5) {
+            for (let ring = 0; ring < 3; ring++) {
+                const ringT = t - 1.5 - ring * 0.5;
+                if (ringT > 0 && ringT < 2) {
+                    const radius = ringT * 300;
+                    const ringAlpha = (1 - ringT / 2) * 0.3;
+                    ctx.strokeStyle = `rgba(241, 196, 15, ${ringAlpha})`;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(w / 2, h / 2, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Titulo "BOSS DERROTADO!" (aparece em 2s, com scale-in)
+        if (t > 2) {
+            const titleT = Math.min(1, (t - 2) * 1.5);
+            const scale = 0.3 + titleT * 0.7 + Math.sin(t * 2) * 0.02;
+            const titleAlpha = titleT;
+
+            ctx.save();
+            ctx.translate(w / 2, h / 2 - 100);
+            ctx.scale(scale, scale);
+            ctx.globalAlpha = titleAlpha;
+
+            // Sombra
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 52px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('BOSS DERROTADO!', 2, 2);
+
+            // Texto com gradiente simulado (amarelo -> laranja)
+            const pulse = Math.sin(t * 4) * 0.1 + 0.9;
+            ctx.fillStyle = `rgb(${Math.floor(241 * pulse)}, ${Math.floor(196 * pulse)}, ${Math.floor(15 * pulse)})`;
+            ctx.fillText('BOSS DERROTADO!', 0, 0);
+
+            ctx.globalAlpha = 1;
+            ctx.restore();
+        }
+
+        // Subtitulo "Polvo Gigante eliminado" (3.5s)
+        if (t > 3.5) {
+            const subAlpha = Math.min(1, (t - 3.5) * 2);
+            ctx.globalAlpha = subAlpha;
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = 'bold 20px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('Polvo Gigante eliminado!', w / 2, h / 2 - 50);
+            ctx.globalAlpha = 1;
+        }
+
+        // Mensagem principal "O Mundo Ceci foi Salvo!" (5s, com animacao letra por letra)
+        if (t > 5) {
+            const msg = 'O Mundo Ceci foi Salvo!';
+            const msgT = t - 5;
+            const visibleChars = Math.min(msg.length, Math.floor(msgT * 12));
+            const visibleMsg = msg.substring(0, visibleChars);
+
+            // Glow atras do texto
+            const glowAlpha = Math.min(0.3, msgT * 0.1);
+            ctx.fillStyle = `rgba(46, 204, 113, ${glowAlpha})`;
+            ctx.beginPath();
+            ctx.ellipse(w / 2, h / 2 + 20, 280, 40, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Texto principal
+            const float = Math.sin(t * 1.5) * 5;
+            ctx.fillStyle = '#2ecc71';
+            ctx.font = 'bold 40px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(visibleMsg, w / 2, h / 2 + 25 + float);
+
+            // Brilho extra quando a frase completa
+            if (visibleChars >= msg.length) {
+                const completeT = msgT - msg.length / 12;
+                if (completeT > 0 && completeT < 1) {
+                    const burstAlpha = (1 - completeT) * 0.4;
+                    ctx.fillStyle = `rgba(46, 204, 113, ${burstAlpha})`;
+                    ctx.beginPath();
+                    ctx.ellipse(w / 2, h / 2 + 20, 300 + completeT * 200, 50 + completeT * 100, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // Pontuacao (7s)
+        if (t > 7) {
+            const scoreAlpha = Math.min(1, (t - 7) * 2);
+            ctx.globalAlpha = scoreAlpha;
+
+            ctx.fillStyle = '#f1c40f';
+            ctx.font = 'bold 24px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Pontuacao Final: ${this.player.score}`, w / 2, h / 2 + 85);
+
+            if (this.player.score >= this.highScore && this.highScore > 0) {
+                ctx.fillStyle = '#e74c3c';
+                ctx.font = 'bold 16px monospace';
+                ctx.fillText('NOVO RECORDE!', w / 2, h / 2 + 110);
+            }
+
+            ctx.globalAlpha = 1;
+        }
+
+        // Estrelas decorativas girando ao redor (3s+)
+        if (t > 3) {
+            ctx.save();
+            const numStars = 8;
+            const starOrbitRadius = 180 + Math.sin(t) * 20;
+            for (let i = 0; i < numStars; i++) {
+                const angle = (Math.PI * 2 / numStars) * i + t * 0.5;
+                const sx = w / 2 + Math.cos(angle) * starOrbitRadius;
+                const sy = h / 2 + Math.sin(angle) * starOrbitRadius * 0.4;
+                const starSize = 6 + Math.sin(t * 3 + i) * 2;
+                ctx.fillStyle = `rgba(241, 196, 15, ${0.4 + Math.sin(t * 2 + i) * 0.3})`;
+                this.drawStarShape(ctx, sx, sy, 5, starSize, starSize * 0.4);
+            }
+            ctx.restore();
+        }
+
+        // Instrucoes (9s)
+        if (t > 9) {
+            const instrAlpha = Math.min(1, (t - 9) * 1.5);
+            if (Math.floor(t * 2) % 2 === 0) {
+                ctx.globalAlpha = instrAlpha;
+                ctx.fillStyle = '#fff';
+                ctx.font = '18px monospace';
+                ctx.textAlign = 'center';
+                const msg = this.touchControls.active ? 'Toque para continuar' : 'Pressione ENTER para continuar';
+                ctx.fillText(msg, w / 2, h / 2 + 160);
+                ctx.globalAlpha = 1;
+            }
+
+            ctx.fillStyle = 'rgba(46, 204, 113, 0.5)';
+            ctx.font = '12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('Progresso salvo automaticamente', w / 2, h / 2 + 190);
+        }
+    }
+
+    // Helper para desenhar estrela na tela de boss victory
+    drawStarShape(ctx, cx, cy, points, outerR, innerR) {
+        ctx.beginPath();
+        for (let i = 0; i < points * 2; i++) {
+            const r = i % 2 === 0 ? outerR : innerR;
+            const angle = (Math.PI / points) * i - Math.PI / 2;
+            if (i === 0) {
+                ctx.moveTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+            } else {
+                ctx.lineTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+            }
+        }
+        ctx.closePath();
+        ctx.fill();
     }
 
     renderCharacterSelect() {
@@ -797,6 +1109,8 @@ export class Game {
                 this.state = STATE.CHARACTER_SELECT;
                 this.selectTime = 0;
             }
+        } else if (this.state === STATE.BOSS_VICTORY && code === 'Enter' && this.bossVictoryTime > 9) {
+            this.state = STATE.VICTORY;
         } else if (this.state === STATE.VICTORY && code === 'Enter') {
             const nextIndex = this.currentLevelIndex + 1;
             if (nextIndex < LEVELS.length) {
@@ -881,6 +1195,13 @@ export class Game {
                 this.player = null;
                 this.state = STATE.LEVEL_SELECT;
                 this.levelSelectTime = 0;
+            }
+            return;
+        }
+
+        if (this.state === STATE.BOSS_VICTORY) {
+            if (this.bossVictoryTime > 9) {
+                this.state = STATE.VICTORY;
             }
             return;
         }
