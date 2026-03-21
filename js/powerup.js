@@ -1,9 +1,11 @@
+import { POWERUP_SIZE, POWERUP_FLOAT_FREQ, POWERUP_FLOAT_AMP } from './constants.js';
+
 export class PowerUp {
     constructor(x, y, type = 'speed') {
         this.x = x;
         this.y = y;
-        this.w = 24;
-        this.h = 24;
+        this.w = POWERUP_SIZE;
+        this.h = POWERUP_SIZE;
         this.type = type; // 'speed', 'doubleJump'
         this.collected = false;
 
@@ -13,8 +15,8 @@ export class PowerUp {
 
     update(dt) {
         if (this.collected) return;
-        this.floatTime += dt * 2;
-        this.y = this.baseY + Math.sin(this.floatTime) * 5;
+        this.floatTime += dt * POWERUP_FLOAT_FREQ;
+        this.y = this.baseY + Math.sin(this.floatTime) * POWERUP_FLOAT_AMP;
     }
 
     render(ctx) {

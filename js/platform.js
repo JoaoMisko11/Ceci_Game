@@ -1,3 +1,5 @@
+import { MOVING_PLATFORM_SPEED, BREAKABLE_TIMER, BREAKABLE_SHAKE } from './constants.js';
+
 export class Platform {
     constructor(x, y, w, h, color = '#4a90d9', type = 'static') {
         this.x = x;
@@ -13,7 +15,7 @@ export class Platform {
         this.startY = y;
         this.moveDistX = 0;
         this.moveDistY = 0;
-        this.moveSpeed = 60;
+        this.moveSpeed = MOVING_PLATFORM_SPEED;
         this.moveProgress = 0;
         this.moveDir = 1;
 
@@ -46,7 +48,7 @@ export class Platform {
 
         if (this.type === 'breakable' && this.breaking) {
             this.breakTimer -= dt;
-            this.shakeAmount = 2;
+            this.shakeAmount = BREAKABLE_SHAKE;
             if (this.breakTimer <= 0) {
                 this.active = false;
             }
@@ -56,7 +58,7 @@ export class Platform {
     startBreaking() {
         if (this.type === 'breakable' && !this.breaking) {
             this.breaking = true;
-            this.breakTimer = 0.5; // meio segundo antes de quebrar
+            this.breakTimer = BREAKABLE_TIMER;
         }
     }
 

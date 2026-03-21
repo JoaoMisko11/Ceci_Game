@@ -6,16 +6,19 @@ export class Input {
         // Touch state (preenchido pelo TouchControls)
         this.touch = null;
 
+        // AbortController para cleanup de listeners
+        this._ac = new AbortController();
+
         window.addEventListener('keydown', (e) => {
             if (!this.keys[e.code]) {
                 this.justPressed[e.code] = true;
             }
             this.keys[e.code] = true;
-        });
+        }, { signal: this._ac.signal });
 
         window.addEventListener('keyup', (e) => {
             this.keys[e.code] = false;
-        });
+        }, { signal: this._ac.signal });
     }
 
     isPressed(code) {
@@ -54,5 +57,9 @@ export class Input {
     get punchPressed() {
         return this.wasJustPressed('KeyX') || this.wasJustPressed('KeyZ') ||
             (this.touch && this.touch.punchJustPressed);
+    }
+
+    destroy() {
+        this._ac.abort();
     }
 }

@@ -1,10 +1,4 @@
-// Dados das skins
-const SKINS = [
-    { name: 'Luna', desc: 'Menina Loira' },
-    { name: 'Mei', desc: 'Menina Chanel' },
-    { name: 'Leo', desc: 'Cavaleiro de Rodas' }
-];
-
+import { SKINS, SHARED_COLORS } from './skins-data.js';
 export { SKINS };
 
 // Desenha o jogador com a skin selecionada
@@ -58,13 +52,39 @@ export function drawPlayerPreview(ctx, cx, cy, skinIndex, scale = 3) {
     ctx.restore();
 }
 
+// Funcao compartilhada — desenha rosto, olhos e boca (identico em todas as skins)
+function drawFace(ctx, x, y, width, facingRight, skinIndex) {
+    const skin = SKINS[skinIndex];
+    const c = skin.colors;
+    const { mouthX, mouthW } = skin.face;
+
+    // Rosto
+    ctx.fillStyle = c.skin;
+    roundRect(ctx, x + 4, y, width - 8, 16, 6);
+
+    // Olhos (esclerotica + iris)
+    ctx.fillStyle = SHARED_COLORS.eyeWhite;
+    const eyeOffsetX = facingRight ? 4 : -4;
+    ctx.fillRect(x + 8 + eyeOffsetX, y + 4, 5, 5);
+    ctx.fillRect(x + width - 13 + eyeOffsetX, y + 4, 5, 5);
+    ctx.fillStyle = c.eyeIris;
+    const pupilShift = facingRight ? 2 : 0;
+    ctx.fillRect(x + 9 + eyeOffsetX + pupilShift, y + 5, 3, 3);
+    ctx.fillRect(x + width - 12 + eyeOffsetX + pupilShift, y + 5, 3, 3);
+
+    // Boca
+    ctx.fillStyle = c.mouth;
+    ctx.fillRect(x + mouthX + (facingRight ? 2 : -2), y + 11, mouthW, 2);
+}
+
 // === SKIN 0: Menina Loira (Luna) ===
 function drawBlondeGirl(ctx, player) {
-    const { x, y, width, height, vx, onGround } = player;
+    const { x, y, width, height } = player;
     const facingRight = player.lastDirection >= 0;
+    const c = SKINS[0].colors;
 
     // Cabelo loiro comprido (atras do corpo)
-    ctx.fillStyle = '#f4d03f';
+    ctx.fillStyle = c.hair;
     roundRect(ctx, x + 2, y - 2, width - 4, 22, 5);
     // Mechas laterais
     if (facingRight) {
@@ -74,7 +94,7 @@ function drawBlondeGirl(ctx, player) {
     }
 
     // Vestido rosa
-    ctx.fillStyle = '#e91e8b';
+    ctx.fillStyle = c.body;
     roundRect(ctx, x + 2, y + 14, width - 4, height - 20, 4);
     // Saia (parte inferior mais larga)
     ctx.beginPath();
@@ -85,16 +105,14 @@ function drawBlondeGirl(ctx, player) {
     ctx.closePath();
     ctx.fill();
 
-    // Rosto (pele clara)
-    ctx.fillStyle = '#fdebd0';
-    roundRect(ctx, x + 4, y, width - 8, 16, 6);
+    drawFace(ctx, x, y, width, facingRight, 0);
 
     // Franja loira
-    ctx.fillStyle = '#f4d03f';
+    ctx.fillStyle = c.hair;
     roundRect(ctx, x + 4, y - 1, width - 8, 7, 4);
 
     // Laco rosa no cabelo
-    ctx.fillStyle = '#ff69b4';
+    ctx.fillStyle = c.bow;
     const lacoX = facingRight ? x + width - 8 : x + 2;
     ctx.beginPath();
     ctx.moveTo(lacoX + 3, y);
@@ -104,69 +122,40 @@ function drawBlondeGirl(ctx, player) {
     ctx.closePath();
     ctx.fill();
 
-    // Olhos verdes
-    ctx.fillStyle = '#fff';
-    const eyeOffsetX = facingRight ? 4 : -4;
-    ctx.fillRect(x + 8 + eyeOffsetX, y + 4, 5, 5);
-    ctx.fillRect(x + width - 13 + eyeOffsetX, y + 4, 5, 5);
-    ctx.fillStyle = '#27ae60';
-    const pupilShift = facingRight ? 2 : 0;
-    ctx.fillRect(x + 9 + eyeOffsetX + pupilShift, y + 5, 3, 3);
-    ctx.fillRect(x + width - 12 + eyeOffsetX + pupilShift, y + 5, 3, 3);
-
-    // Boca (sorriso)
-    ctx.fillStyle = '#e74c3c';
-    ctx.fillRect(x + 12 + (facingRight ? 2 : -2), y + 11, 4, 2);
-
     // Sapatilhas roxas
-    ctx.fillStyle = '#8e44ad';
+    ctx.fillStyle = c.shoes;
     drawFeet(ctx, player);
 }
 
 // === SKIN 1: Menina Chanel (Mei) ===
 function drawChanelGirl(ctx, player) {
-    const { x, y, width, height, vx, onGround } = player;
+    const { x, y, width, height } = player;
     const facingRight = player.lastDirection >= 0;
+    const c = SKINS[1].colors;
 
     // Cabelo chanel escuro (atras)
-    ctx.fillStyle = '#2c3e50';
+    ctx.fillStyle = c.hair;
     roundRect(ctx, x + 1, y - 2, width - 2, 24, 5);
     // Laterais do chanel (na altura do queixo)
     roundRect(ctx, x - 1, y + 2, 7, 16, 3);
     roundRect(ctx, x + width - 6, y + 2, 7, 16, 3);
 
     // Blusa azul
-    ctx.fillStyle = '#3498db';
+    ctx.fillStyle = c.body;
     roundRect(ctx, x + 2, y + 14, width - 4, height - 20, 4);
 
     // Shorts escuros
-    ctx.fillStyle = '#2c3e50';
+    ctx.fillStyle = c.shorts;
     ctx.fillRect(x + 2, y + height - 14, width - 4, 8);
 
-    // Rosto
-    ctx.fillStyle = '#f5cba7';
-    roundRect(ctx, x + 4, y, width - 8, 16, 6);
+    drawFace(ctx, x, y, width, facingRight, 1);
 
     // Franja reta (corte chanel)
-    ctx.fillStyle = '#2c3e50';
+    ctx.fillStyle = c.hair;
     ctx.fillRect(x + 4, y - 1, width - 8, 6);
 
-    // Olhos castanhos
-    ctx.fillStyle = '#fff';
-    const eyeOffsetX = facingRight ? 4 : -4;
-    ctx.fillRect(x + 8 + eyeOffsetX, y + 4, 5, 5);
-    ctx.fillRect(x + width - 13 + eyeOffsetX, y + 4, 5, 5);
-    ctx.fillStyle = '#8b4513';
-    const pupilShift = facingRight ? 2 : 0;
-    ctx.fillRect(x + 9 + eyeOffsetX + pupilShift, y + 5, 3, 3);
-    ctx.fillRect(x + width - 12 + eyeOffsetX + pupilShift, y + 5, 3, 3);
-
-    // Boca
-    ctx.fillStyle = '#e74c3c';
-    ctx.fillRect(x + 12 + (facingRight ? 2 : -2), y + 11, 4, 2);
-
     // Tenis brancos
-    ctx.fillStyle = '#ecf0f1';
+    ctx.fillStyle = c.shoes;
     drawFeet(ctx, player);
 }
 
@@ -174,9 +163,10 @@ function drawChanelGirl(ctx, player) {
 function drawWheelchairBoy(ctx, player) {
     const { x, y, width, height, vx, onGround } = player;
     const facingRight = player.lastDirection >= 0;
+    const c = SKINS[2].colors;
 
     // Cadeira de rodas - assento
-    ctx.fillStyle = '#7f8c8d';
+    ctx.fillStyle = c.wheelchair;
     roundRect(ctx, x - 2, y + 20, width + 4, 14, 3);
 
     // Encosto da cadeira
@@ -184,7 +174,7 @@ function drawWheelchairBoy(ctx, player) {
     ctx.fillRect(backX, y + 10, 4, 24);
 
     // Rodas grandes
-    ctx.strokeStyle = '#566573';
+    ctx.strokeStyle = c.wheelStroke;
     ctx.lineWidth = 2;
     const wheelRadius = 9;
     const wheelY = y + height - wheelRadius;
@@ -210,7 +200,7 @@ function drawWheelchairBoy(ctx, player) {
     ctx.stroke();
 
     // Centro das rodas
-    ctx.fillStyle = '#566573';
+    ctx.fillStyle = c.wheelStroke;
     ctx.beginPath();
     ctx.arc(rearWheelX, wheelY, 2, 0, Math.PI * 2);
     ctx.fill();
@@ -219,41 +209,25 @@ function drawWheelchairBoy(ctx, player) {
     ctx.fill();
 
     // Camiseta verde
-    ctx.fillStyle = '#27ae60';
+    ctx.fillStyle = c.body;
     roundRect(ctx, x + 2, y + 10, width - 4, 16, 4);
 
     // Cabelo castanho curto
-    ctx.fillStyle = '#8b6914';
+    ctx.fillStyle = c.hair;
     roundRect(ctx, x + 3, y - 2, width - 6, 8, 5);
 
-    // Rosto
-    ctx.fillStyle = '#f5b041';
-    roundRect(ctx, x + 4, y, width - 8, 16, 6);
+    drawFace(ctx, x, y, width, facingRight, 2);
 
     // Cabelo por cima (topo)
-    ctx.fillStyle = '#8b6914';
+    ctx.fillStyle = c.hair;
     roundRect(ctx, x + 4, y - 2, width - 8, 7, 4);
-
-    // Olhos
-    ctx.fillStyle = '#fff';
-    const eyeOffsetX = facingRight ? 4 : -4;
-    ctx.fillRect(x + 8 + eyeOffsetX, y + 4, 5, 5);
-    ctx.fillRect(x + width - 13 + eyeOffsetX, y + 4, 5, 5);
-    ctx.fillStyle = '#2c3e50';
-    const pupilShift = facingRight ? 2 : 0;
-    ctx.fillRect(x + 9 + eyeOffsetX + pupilShift, y + 5, 3, 3);
-    ctx.fillRect(x + width - 12 + eyeOffsetX + pupilShift, y + 5, 3, 3);
-
-    // Boca determinada
-    ctx.fillStyle = '#c0392b';
-    ctx.fillRect(x + 11 + (facingRight ? 2 : -2), y + 11, 6, 2);
 
     // Espada
     const swordDir = facingRight ? 1 : -1;
     const swordX = facingRight ? x + width + 2 : x - 14;
 
     // Lamina
-    ctx.fillStyle = '#bdc3c7';
+    ctx.fillStyle = c.sword.blade;
     ctx.fillRect(swordX + (facingRight ? 4 : 6), y + 4, 4, 20);
     // Ponta da lamina
     ctx.beginPath();
@@ -264,15 +238,15 @@ function drawWheelchairBoy(ctx, player) {
     ctx.fill();
 
     // Brilho da lamina
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.fillStyle = c.sword.shine;
     ctx.fillRect(swordX + (facingRight ? 5 : 7), y + 6, 1, 14);
 
     // Guarda da espada
-    ctx.fillStyle = '#f39c12';
+    ctx.fillStyle = c.sword.guard;
     ctx.fillRect(swordX + (facingRight ? 2 : 4), y + 22, 10, 3);
 
     // Cabo
-    ctx.fillStyle = '#c0392b';
+    ctx.fillStyle = c.sword.handle;
     ctx.fillRect(swordX + (facingRight ? 5 : 7), y + 25, 4, 6);
 }
 
@@ -314,15 +288,15 @@ export function drawPunch(ctx, player) {
         const armLen = player.PUNCH_RANGE * extend;
 
         // Braco
-        ctx.fillStyle = '#fdebd0';
+        ctx.fillStyle = SHARED_COLORS.punchArm;
         ctx.fillRect(armX, armY, armLen, 8);
 
         // Punho
-        ctx.fillStyle = '#f39c12';
+        ctx.fillStyle = SHARED_COLORS.punchFist;
         ctx.beginPath();
         ctx.arc(armX + armLen, armY + 4, 7, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#e67e22';
+        ctx.fillStyle = SHARED_COLORS.punchFistInner;
         ctx.beginPath();
         ctx.arc(armX + armLen, armY + 4, 5, 0, Math.PI * 2);
         ctx.fill();
@@ -331,15 +305,15 @@ export function drawPunch(ctx, player) {
         const armX = player.x - armLen;
 
         // Braco
-        ctx.fillStyle = '#fdebd0';
+        ctx.fillStyle = SHARED_COLORS.punchArm;
         ctx.fillRect(armX, armY, armLen, 8);
 
         // Punho
-        ctx.fillStyle = '#f39c12';
+        ctx.fillStyle = SHARED_COLORS.punchFist;
         ctx.beginPath();
         ctx.arc(armX, armY + 4, 7, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#e67e22';
+        ctx.fillStyle = SHARED_COLORS.punchFistInner;
         ctx.beginPath();
         ctx.arc(armX, armY + 4, 5, 0, Math.PI * 2);
         ctx.fill();
@@ -356,12 +330,15 @@ export function drawWater(ctx, water) {
     ctx.fillStyle = 'rgba(30, 100, 200, 0.35)';
     ctx.fillRect(x, y, w, h);
 
-    // Camada mais escura no fundo
+    // Camada mais escura no fundo (gradiente cacheado por zona de agua)
     const gradH = Math.min(h, 60);
-    const grad = ctx.createLinearGradient(x, y + h - gradH, x, y + h);
-    grad.addColorStop(0, 'rgba(10, 50, 120, 0)');
-    grad.addColorStop(1, 'rgba(10, 50, 120, 0.3)');
-    ctx.fillStyle = grad;
+    if (!water._gradCache || water._gradCacheY !== y + h - gradH) {
+        water._gradCache = ctx.createLinearGradient(x, y + h - gradH, x, y + h);
+        water._gradCache.addColorStop(0, 'rgba(10, 50, 120, 0)');
+        water._gradCache.addColorStop(1, 'rgba(10, 50, 120, 0.3)');
+        water._gradCacheY = y + h - gradH;
+    }
+    ctx.fillStyle = water._gradCache;
     ctx.fillRect(x, y + h - gradH, w, gradH);
 
     // Ondas na superficie
@@ -778,14 +755,21 @@ export function drawItem(ctx, item) {
     }
 }
 
+// Cache de gradientes — evita recriar objetos identicos a cada frame
+let _bgGradient = null;
+let _bgGradientH = 0;
+
 // Desenha parallax de fundo
 export function drawBackground(ctx, camera, levelWidth, levelHeight, canvasWidth, canvasHeight) {
-    // Camada 1 — ceu gradiente
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
-    gradient.addColorStop(0, '#0f0c29');
-    gradient.addColorStop(0.5, '#302b63');
-    gradient.addColorStop(1, '#24243e');
-    ctx.fillStyle = gradient;
+    // Camada 1 — ceu gradiente (cacheado por altura do canvas)
+    if (!_bgGradient || _bgGradientH !== canvasHeight) {
+        _bgGradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+        _bgGradient.addColorStop(0, '#0f0c29');
+        _bgGradient.addColorStop(0.5, '#302b63');
+        _bgGradient.addColorStop(1, '#24243e');
+        _bgGradientH = canvasHeight;
+    }
+    ctx.fillStyle = _bgGradient;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // Camada 2 — estrelas (parallax lento)

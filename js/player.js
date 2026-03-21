@@ -1,28 +1,25 @@
-const GRAVITY = 1500;
-const MAX_FALL_SPEED = 800;
-const MOVE_SPEED = 300;
-const JUMP_FORCE = -700;
-const FRICTION = 0.85;
-
-// Modificadores de agua
-const WATER_GRAVITY_MULT = 0.4;
-const WATER_SPEED_MULT = 0.5;
-const WATER_JUMP_MULT = 0.6;
-const WATER_MAX_FALL_MULT = 0.3;
+import {
+    GRAVITY, MAX_FALL_SPEED, MOVE_SPEED, JUMP_FORCE, FRICTION,
+    WATER_GRAVITY_MULT, WATER_SPEED_MULT, WATER_JUMP_MULT, WATER_MAX_FALL_MULT,
+    WATER_FRICTION, SPEED_BOOST_MULT, DOUBLE_JUMP_MULT,
+    PLAYER_WIDTH, PLAYER_HEIGHT, PLAYER_LIVES, INVINCIBLE_DURATION,
+    PUNCH_DURATION, PUNCH_COOLDOWN, PUNCH_RANGE, PUNCH_HEIGHT,
+    SPEED_BOOST_DURATION, DOUBLE_JUMP_DURATION
+} from './constants.js';
 
 export class Player {
     constructor(x, y, skin = 0) {
         this.x = x;
         this.y = y;
-        this.width = 32;
-        this.height = 48;
+        this.width = PLAYER_WIDTH;
+        this.height = PLAYER_HEIGHT;
         this.skin = skin;
 
         this.vx = 0;
         this.vy = 0;
         this.onGround = false;
 
-        this.lives = 3;
+        this.lives = PLAYER_LIVES;
         this.score = 0;
         this.invincibleTimer = 0;
         this.lastDirection = 1;
@@ -38,10 +35,10 @@ export class Player {
         this.punching = false;
         this.punchTimer = 0;
         this.punchCooldown = 0;
-        this.PUNCH_DURATION = 0.25; // duracao da animacao
-        this.PUNCH_COOLDOWN = 0.35; // tempo entre socos
-        this.PUNCH_RANGE = 28; // alcance do soco
-        this.PUNCH_HEIGHT = 20; // altura da hitbox do soco
+        this.PUNCH_DURATION = PUNCH_DURATION;
+        this.PUNCH_COOLDOWN = PUNCH_COOLDOWN;
+        this.PUNCH_RANGE = PUNCH_RANGE;
+        this.PUNCH_HEIGHT = PUNCH_HEIGHT;
 
         // Agua
         this.inWater = false;
@@ -68,16 +65,16 @@ export class Player {
     takeDamage() {
         if (this.isInvincible) return;
         this.lives--;
-        this.invincibleTimer = 1.5; // 1.5s de invencibilidade
+        this.invincibleTimer = INVINCIBLE_DURATION;
     }
 
     applyPowerUp(type) {
         if (type === 'speed') {
             this.speedBoost = true;
-            this.speedTimer = 8; // 8 segundos
+            this.speedTimer = SPEED_BOOST_DURATION;
         } else if (type === 'doubleJump') {
             this.doubleJump = true;
-            this.doubleJumpTimer = 10; // 10 segundos
+            this.doubleJumpTimer = DOUBLE_JUMP_DURATION;
         }
     }
 
@@ -111,7 +108,7 @@ export class Player {
             this.punchCooldown = this.PUNCH_COOLDOWN;
         }
 
-        let currentSpeed = this.speedBoost ? MOVE_SPEED * 1.6 : MOVE_SPEED;
+        let currentSpeed = this.speedBoost ? MOVE_SPEED * SPEED_BOOST_MULT : MOVE_SPEED;
         let currentJumpForce = JUMP_FORCE;
         let currentGravity = GRAVITY;
         let currentMaxFall = MAX_FALL_SPEED;
@@ -132,7 +129,7 @@ export class Player {
             this.vx = currentSpeed;
             this.lastDirection = 1;
         } else {
-            this.vx *= this.inWater ? 0.92 : FRICTION;
+            this.vx *= this.inWater ? WATER_FRICTION : FRICTION;
             if (Math.abs(this.vx) < 1) this.vx = 0;
         }
 
@@ -144,7 +141,7 @@ export class Player {
             this.onGround = false;
             if (this.doubleJump) this.canDoubleJump = true;
         } else if (input.jumpPressed && !this.onGround && this.canDoubleJump) {
-            this.vy = currentJumpForce * 0.85;
+            this.vy = currentJumpForce * DOUBLE_JUMP_MULT;
             this.canDoubleJump = false;
         }
 

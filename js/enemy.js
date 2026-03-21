@@ -1,9 +1,26 @@
+import {
+    ENEMY_SIZE, WALKER_SPEED, FLYER_SPEED, SWIMMER_SPEED,
+    FLYER_FLOAT_FREQ, FLYER_FLOAT_AMP, SWIMMER_FLOAT_FREQ, SWIMMER_FLOAT_AMP,
+    BOSS_WIDTH, BOSS_HEIGHT, BOSS_SPEED, BOSS_LIVES, BOSS_HIT_TIMER,
+    BOSS_PHASE2_THRESHOLD, BOSS_PHASE3_THRESHOLD, BOSS_PHASE_SPEED_MULT,
+    BOSS_FLOAT_BASE_FREQ, BOSS_FLOAT_PHASE_FREQ, BOSS_FLOAT_BASE_AMP, BOSS_FLOAT_PHASE_AMP,
+    BOSS_INK_INTERVALS, BOSS_INK_BASE_SPEED, BOSS_INK_PHASE_SPEED,
+    BOSS_INK_LIFETIME, BOSS_INK_SIZE
+} from './constants.js';
+
+const ENEMY_SPEEDS = {
+    walker: WALKER_SPEED,
+    flyer: FLYER_SPEED,
+    swimmer: SWIMMER_SPEED,
+    octopus: BOSS_SPEED
+};
+
 export class Enemy {
     constructor(x, y, patrolDistance = 100, type = 'walker') {
         this.x = x;
         this.y = y;
-        this.w = type === 'octopus' ? 80 : 30;
-        this.h = type === 'octopus' ? 70 : 30;
+        this.w = type === 'octopus' ? BOSS_WIDTH : ENEMY_SIZE;
+        this.h = type === 'octopus' ? BOSS_HEIGHT : ENEMY_SIZE;
         this.alive = true;
         this.type = type;
 
@@ -11,7 +28,7 @@ export class Enemy {
         this.startX = x;
         this.startY = y;
         this.patrolDistance = patrolDistance;
-        this.speed = type === 'flyer' ? 60 : type === 'swimmer' ? 70 : type === 'octopus' ? 40 : 80;
+        this.speed = ENEMY_SPEEDS[type] || WALKER_SPEED;
         this.direction = 1;
 
         // Voador
@@ -21,7 +38,7 @@ export class Enemy {
         this.swimTime = Math.random() * Math.PI * 2;
 
         // Boss (octopus)
-        this.lives = type === 'octopus' ? 5 : 1;
+        this.lives = type === 'octopus' ? BOSS_LIVES : 1;
         this.maxLives = this.lives;
         this.isBoss = type === 'octopus';
         this.bossPhase = 1; // muda comportamento conforme perde vida
@@ -52,14 +69,14 @@ export class Enemy {
 
         // Voador flutua verticalmente
         if (this.type === 'flyer') {
-            this.floatTime += dt * 3;
-            this.y = this.startY + Math.sin(this.floatTime) * 20;
+            this.floatTime += dt * FLYER_FLOAT_FREQ;
+            this.y = this.startY + Math.sin(this.floatTime) * FLYER_FLOAT_AMP;
         }
 
         // Nadador oscila verticalmente (simulando nado)
         if (this.type === 'swimmer') {
-            this.swimTime += dt * 2.5;
-            this.y = this.startY + Math.sin(this.swimTime) * 15;
+            this.swimTime += dt * SWIMMER_FLOAT_FREQ;
+            this.y = this.startY + Math.sin(this.swimTime) * SWIMMER_FLOAT_AMP;
         }
     }
 
@@ -69,14 +86,14 @@ export class Enemy {
 
         // Fase do boss baseada nas vidas restantes
         const lifeRatio = this.lives / this.maxLives;
-        if (lifeRatio <= 0.4) {
+        if (lifeRatio <= BOSS_PHASE3_THRESHOLD) {
             this.bossPhase = 3; // rapido e agressivo
-        } else if (lifeRatio <= 0.7) {
+        } else if (lifeRatio <= BOSS_PHASE2_THRESHOLD) {
             this.bossPhase = 2; // mais rapido
         }
 
         // Velocidade aumenta por fase
-        const phaseSpeed = this.speed * (1 + (this.bossPhase - 1) * 0.5);
+        const phaseSpeed = this.speed * (1 + (this.bossPhase - 1) * BOSS_PHASE_SPEED_MULT);
         this.x += phaseSpeed * this.direction * dt;
 
         if (this.x > this.startX + this.patrolDistance) {
@@ -88,12 +105,12 @@ export class Enemy {
         }
 
         // Flutuacao vertical do polvo
-        this.swimTime += dt * (1.5 + this.bossPhase * 0.5);
-        this.y = this.startY + Math.sin(this.swimTime) * (20 + this.bossPhase * 5);
+        this.swimTime += dt * (BOSS_FLOAT_BASE_FREQ + this.bossPhase * BOSS_FLOAT_PHASE_FREQ);
+        this.y = this.startY + Math.sin(this.swimTime) * (BOSS_FLOAT_BASE_AMP + this.bossPhase * BOSS_FLOAT_PHASE_AMP);
 
         // Ataque de tinta
         this.inkCooldown -= dt;
-        const inkInterval = this.bossPhase === 3 ? 1.5 : this.bossPhase === 2 ? 2.5 : 3.5;
+        const inkInterval = BOSS_INK_INTERVALS[this.bossPhase - 1];
         if (this.inkCooldown <= 0) {
             this.inkCooldown = inkInterval;
             this.spawnInk();
@@ -118,15 +135,15 @@ export class Enemy {
         const numInks = this.bossPhase;
         for (let i = 0; i < numInks; i++) {
             const angle = (Math.PI / (numInks + 1)) * (i + 1) + (this.direction > 0 ? Math.PI : 0);
-            const speed = 150 + this.bossPhase * 30;
+            const speed = BOSS_INK_BASE_SPEED + this.bossPhase * BOSS_INK_PHASE_SPEED;
             this.inkAttacks.push({
                 x: cx,
                 y: cy,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                life: 3,
-                w: 10,
-                h: 10
+                life: BOSS_INK_LIFETIME,
+                w: BOSS_INK_SIZE,
+                h: BOSS_INK_SIZE
             });
         }
     }
@@ -134,7 +151,7 @@ export class Enemy {
     takeDamage() {
         if (!this.isBoss || this.hitTimer > 0) return false;
         this.lives--;
-        this.hitTimer = 0.8; // invencibilidade temporaria
+        this.hitTimer = BOSS_HIT_TIMER;
         if (this.lives <= 0) {
             this.kill();
         }

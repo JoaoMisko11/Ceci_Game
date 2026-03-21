@@ -365,8 +365,38 @@
                 </div>
                 <div class="card highlight">
                     <div class="card-name"><code>game.js</code></div>
-                    <div class="card-desc">Classe Game — orquestra init, update e render. Maquina de estados, seletor de fases, save/load com validacao de tipos via localStorage</div>
-                    <div class="card-tags"><span class="tag">orquestrador</span><span class="tag">estados</span><span class="tag">skins</span><span class="tag">save</span><span class="tag">fases</span><span class="tag">validacao</span></div>
+                    <div class="card-desc">Classe Game — orquestra update/render, game loop e maquina de estados. Delega colisao, save e menus para modulos dedicados</div>
+                    <div class="card-tags"><span class="tag">orquestrador</span><span class="tag">estados</span><span class="tag">game loop</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>constants.js</code></div>
+                    <div class="card-desc">Constantes centralizadas — fisica, pontuacao, inimigos, boss, plataformas, timers e colisao</div>
+                    <div class="card-tags"><span class="tag">config</span><span class="tag">balanceamento</span><span class="tag">gameplay</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>skins-data.js</code></div>
+                    <div class="card-desc">Dados visuais dos personagens — cores, paletas e metadata das 3 skins (Luna, Mei, Leo)</div>
+                    <div class="card-tags"><span class="tag">skins</span><span class="tag">cores</span><span class="tag">visual</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>save-manager.js</code></div>
+                    <div class="card-desc">Persistencia via localStorage — save/load com validacao de tipos, desbloqueio de fases e high score</div>
+                    <div class="card-tags"><span class="tag">save</span><span class="tag">localStorage</span><span class="tag">validacao</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>collision.js</code></div>
+                    <div class="card-desc">Sistema de colisao — soco, plataformas (via spatial grid), itens, power-ups, inimigos, tinta do boss e queda</div>
+                    <div class="card-tags"><span class="tag">colisao</span><span class="tag">gameplay</span><span class="tag">fisica</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>spatial-grid.js</code></div>
+                    <div class="card-desc">Grade espacial para otimizar deteccao de colisao — particiona entidades em celulas de 128px</div>
+                    <div class="card-tags"><span class="tag">performance</span><span class="tag">colisao</span><span class="tag">spatial hash</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-name"><code>menu-renderer.js</code></div>
+                    <div class="card-desc">Renderizacao de menus — titulo, selecao de personagem/fase, HUD, game over, vitoria e boss victory</div>
+                    <div class="card-tags"><span class="tag">ui</span><span class="tag">menus</span><span class="tag">hud</span></div>
                 </div>
             </div>
         </div>
@@ -474,6 +504,52 @@
             </div>
         </div>
     </div>
+
+    <div class="group group-assets">
+        <div class="group-label"><span class="icon">🧪</span> tests/ — Testes (Vitest)</div>
+        <div class="cards">
+            <div class="card">
+                <div class="card-name"><code>camera.test.js</code></div>
+                <div class="card-desc">Testes da Camera: posicao, limites, follow, resize</div>
+                <div class="card-tags"><span class="tag">5 testes</span></div>
+            </div>
+            <div class="card">
+                <div class="card-name"><code>player.test.js</code></div>
+                <div class="card-desc">Testes do Player: fisica, pulo, soco, dano, power-ups</div>
+                <div class="card-tags"><span class="tag">15 testes</span></div>
+            </div>
+            <div class="card">
+                <div class="card-name"><code>platform.test.js</code></div>
+                <div class="card-desc">Testes de plataformas: AABB, resolucao de colisao, factory</div>
+                <div class="card-tags"><span class="tag">12 testes</span></div>
+            </div>
+            <div class="card">
+                <div class="card-name"><code>enemy.test.js</code></div>
+                <div class="card-desc">Testes de inimigos e boss: patrulha, dano, fases, tinta</div>
+                <div class="card-tags"><span class="tag">15 testes</span></div>
+            </div>
+            <div class="card">
+                <div class="card-name"><code>item.test.js</code></div>
+                <div class="card-desc">Testes de itens e power-ups: coleta, pontuacao, flutuacao</div>
+                <div class="card-tags"><span class="tag">9 testes</span></div>
+            </div>
+            <div class="card">
+                <div class="card-name"><code>save-manager.test.js</code></div>
+                <div class="card-desc">Testes de persistencia: save, load, validacao, corrupcao</div>
+                <div class="card-tags"><span class="tag">11 testes</span></div>
+            </div>
+            <div class="card">
+                <div class="card-name"><code>collision.test.js</code></div>
+                <div class="card-desc">Testes de colisao: soco, stomp, dano, queda, vitoria</div>
+                <div class="card-tags"><span class="tag">17 testes</span></div>
+            </div>
+            <div class="card">
+                <div class="card-name"><code>spatial-grid.test.js</code></div>
+                <div class="card-desc">Testes da grade espacial: insert, query, clear, deduplicacao</div>
+                <div class="card-tags"><span class="tag">8 testes</span></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Fluxo de Dependencias -->
@@ -498,6 +574,9 @@
             <div class="flow-node fn-purple">input.js</div>
             <div class="flow-node fn-purple">renderer.js</div>
             <div class="flow-node fn-purple">audio.js</div>
+            <div class="flow-node fn-blue">collision.js</div>
+            <div class="flow-node fn-blue">save-manager.js</div>
+            <div class="flow-node fn-purple">menu-renderer.js</div>
         </div>
 
         <div class="flow-arrow-down">↓</div>
@@ -510,6 +589,14 @@
             <div class="flow-node fn-orange">powerup.js</div>
             <div class="flow-node fn-purple">camera.js</div>
             <div class="flow-node fn-purple">particles.js</div>
+        </div>
+
+        <div class="flow-arrow-down">↑</div>
+        <div class="bracket">constantes compartilhadas</div>
+
+        <div class="flow-row">
+            <div class="flow-node fn-blue">constants.js</div>
+            <div class="flow-node fn-purple">skins-data.js</div>
         </div>
 
         <div class="flow-arrow-down">↓</div>

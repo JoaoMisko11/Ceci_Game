@@ -159,36 +159,37 @@ Jogo de plataforma 2D para web com HTML5 Canvas.
 - [x] Adicionar error handling na inicializacao do canvas em `main.js`
 - [x] Adicionar try-catch no `loadLevel()` em `game.js`
 
-### Fase 16.2 - Extrair Constantes
+### Fase 16.2 - Extrair Constantes ✅
 
-- [ ] Criar `js/constants.js` com constantes de gameplay
-- [ ] Criar `js/skins-data.js` com definicoes visuais dos personagens
-- [ ] Substituir magic numbers por constantes nomeadas
+- [x] Criar `js/constants.js` com constantes de gameplay (fisica, pontuacao, inimigos, boss, plataformas, timers, colisao)
+- [x] Criar `js/skins-data.js` com definicoes visuais dos personagens (cores e metadata das 3 skins)
+- [x] Substituir magic numbers por constantes nomeadas em player.js, enemy.js, platform.js, item.js, powerup.js, particles.js, game.js e renderer.js
 
-### Fase 16.3 - Refatorar God Class (game.js)
+### Fase 16.3 - Refatorar God Class (game.js) ✅
 
-- [ ] Extrair `js/state-manager.js`
-- [ ] Extrair `js/collision.js`
-- [ ] Extrair `js/save-manager.js`
-- [ ] Extrair `js/menu-renderer.js`
+- [x] Extrair `js/save-manager.js` — classe SaveManager com load/save/delete, validacao de tipos e desbloqueio de fases
+- [x] Extrair `js/collision.js` — funcoes de colisao: soco, plataformas, itens, power-ups, inimigos, tinta, queda e vitoria
+- [x] Extrair `js/menu-renderer.js` — renderizacao de titulo, selecao de personagem/fase, HUD, game over, vitoria e boss victory
+- [x] game.js refatorado: orquestra game loop e estados, delegando responsabilidades aos modulos extraidos
 
-### Fase 16.4 - Testes
+### Fase 16.4 - Testes ✅
 
-- [ ] Configurar Vitest
-- [ ] Testes unitarios: camera, player, platform, enemy, item
-- [ ] Testes de integracao: transicoes de estado, save/load
+- [x] Configurar Vitest (vitest.config.js, package.json)
+- [x] Testes unitarios: camera (5), player (15), platform (12), enemy (15), item (9)
+- [x] Testes unitarios: save-manager (11), collision (17) com mocks de audio
+- [x] Total: 87 testes passando em 7 arquivos
 
-### Fase 16.5 - Performance
+### Fase 16.5 - Performance ✅
 
-- [ ] Spatial hashing para colisao
-- [ ] Object pooling para particulas
-- [ ] Cache de gradientes no renderer
-- [ ] Cleanup de event listeners (AbortController)
+- [x] Spatial hashing para colisao (js/spatial-grid.js — grade 128px para plataformas)
+- [x] Object pooling para particulas (pool pre-alocado de 512, swap-and-pop no update)
+- [x] Cache de gradientes no renderer (background e water gradients cacheados)
+- [x] Cleanup de event listeners (AbortController em Input, TouchControls, main.js)
 
-### Fase 16.6 - Reduzir Duplicacao no Renderer
+### Fase 16.6 - Reduzir Duplicacao no Renderer ✅
 
-- [ ] Funcao base `drawCharacterBody()` compartilhada entre skins
-- [ ] Parametrizar cores e offsets via objeto de skin
+- [x] Funcao `drawFace()` compartilhada — desenha rosto, olhos e boca para todas as skins
+- [x] Parametrizar offsets via `face` config em skins-data.js (mouthX, mouthW por skin)
 
 ---
 

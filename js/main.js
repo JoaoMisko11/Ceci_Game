@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // AbortController para listeners do main
+    const ac = new AbortController();
+
     function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -23,8 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const game = new Game(canvas, ctx);
 
-    window.addEventListener('resize', resize);
-    window.addEventListener('keydown', (e) => game.handleKey(e.code));
+    window.addEventListener('resize', resize, { signal: ac.signal });
+    window.addEventListener('keydown', (e) => game.handleKey(e.code), { signal: ac.signal });
 
     // Tap para navegar menus no mobile
     canvas.addEventListener('touchstart', (e) => {
@@ -34,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const y = touch.clientY * (canvas.height / canvas.clientHeight);
             game.handleTap(x, y);
         }
-    });
+    }, { signal: ac.signal });
 
     game.start();
 });

@@ -7,6 +7,9 @@ export class TouchControls {
         this.active = false;
         this.enabled = false;
 
+        // AbortController para cleanup de listeners
+        this._ac = new AbortController();
+
         // Estado dos controles
         this.leftPressed = false;
         this.rightPressed = false;
@@ -53,12 +56,14 @@ export class TouchControls {
     }
 
     bindEvents() {
+        const signal = this._ac.signal;
+
         const handler = (name, fn) => {
             this.canvas.addEventListener(name, (e) => {
                 // Ativar touch na primeira interacao
                 if (!this.active) this.activate();
                 fn(e);
-            }, { passive: false });
+            }, { passive: false, signal });
         };
 
         handler('touchstart', (e) => this.onTouchStart(e));
@@ -68,7 +73,11 @@ export class TouchControls {
 
         window.addEventListener('resize', () => {
             if (this.active) this.updateLayout();
-        });
+        }, { signal });
+    }
+
+    destroy() {
+        this._ac.abort();
     }
 
     updateLayout() {

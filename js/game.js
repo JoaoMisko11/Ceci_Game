@@ -1,12 +1,25 @@
 import { Player } from './player.js';
 import { Input } from './input.js';
-import { checkAABB, resolveCollision } from './platform.js';
 import { Camera } from './camera.js';
 import { Level } from './level.js';
-import { drawPlayer, drawPunch, drawEnemy, drawItem, drawBackground, drawPlayerPreview, drawWater, drawBossHealthBar, SKINS } from './renderer.js';
-import { playJumpSound, playCoinSound, playStarSound, playDamageSound, playEnemyKillSound, playGameOverSound, playPunchSound, playPunchHitSound, playBossVictorySound, playFireworkSound } from './audio.js';
+import { drawPlayer, drawPunch, drawEnemy, drawItem, drawBackground, drawWater, drawBossHealthBar } from './renderer.js';
+import { playJumpSound, playPunchSound, playBossVictorySound, playFireworkSound, playGameOverSound } from './audio.js';
 import { ParticleSystem } from './particles.js';
 import { TouchControls } from './touch.js';
+import {
+    PLAYER_LIVES, BOSS_WIDTH, BOSS_HEIGHT,
+    BOSS_VICTORY_FIREWORK_FAST, BOSS_VICTORY_FIREWORK_SLOW, BOSS_VICTORY_FIREWORK_THRESHOLD
+} from './constants.js';
+import { SaveManager } from './save-manager.js';
+import {
+    handlePunchCollisions, resetPunchFlags, handlePlatformCollisions,
+    handleWaterCheck, handleItemCollisions, handlePowerUpCollisions,
+    handleEnemyCollisions, checkFallDeath, checkVictory, rebuildPlatformGrid
+} from './collision.js';
+import {
+    renderTitle, renderHUD, renderGameOver, renderVictory,
+    renderBossVictory, renderCharacterSelect, renderLevelSelect
+} from './menu-renderer.js';
 
 const STATE = {
     TITLE: 'title',
@@ -24,15 +37,6 @@ const LEVELS = [
     'assets/levels/level3.json',
     'assets/levels/level4.json'
 ];
-
-const LEVEL_NAMES = [
-    'Fase 1 - Inicio',
-    'Fase 2 - Desafio',
-    'Fase 3 - Profundezas',
-    'Fase 4 - Oceano Profundo'
-];
-
-const SAVE_KEY = 'ceciGameSave';
 
 export class Game {
     constructor(canvas, ctx) {
@@ -62,61 +66,14 @@ export class Game {
         this.bossVictoryFireworkTimer = 0;
         this.bossVictorySoundPlayed = false;
 
-        // Save — carregar dados salvos
-        this.saveData = this.loadSave();
-        this.unlockedLevels = this.saveData.unlockedLevels || 1; // quantas fases desbloqueadas
-        this.highScore = this.saveData.highScore || 0;
-        if (this.saveData.skin !== undefined) {
-            this.selectedSkin = this.saveData.skin;
-        }
+        // Save
+        this.saveManager = new SaveManager();
+        this.selectedSkin = this.saveManager.skin;
     }
 
-    // === Save / Load ===
-
-    loadSave() {
-        try {
-            const raw = localStorage.getItem(SAVE_KEY);
-            if (!raw) return {};
-            const data = JSON.parse(raw);
-            // Validar tipos dos campos esperados
-            if (typeof data !== 'object' || data === null) return {};
-            if (data.unlockedLevels !== undefined && (typeof data.unlockedLevels !== 'number' || data.unlockedLevels < 1)) {
-                data.unlockedLevels = 1;
-            }
-            if (data.highScore !== undefined && (typeof data.highScore !== 'number' || data.highScore < 0)) {
-                data.highScore = 0;
-            }
-            if (data.skin !== undefined && (typeof data.skin !== 'number' || data.skin < 0 || data.skin > 2)) {
-                data.skin = 0;
-            }
-            return data;
-        } catch {
-            return {};
-        }
-    }
-
-    save() {
-        const data = {
-            unlockedLevels: this.unlockedLevels,
-            highScore: this.highScore,
-            skin: this.selectedSkin
-        };
-        try {
-            localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-        } catch {
-            // localStorage indisponivel — ignorar
-        }
-    }
-
-    deleteSave() {
-        try {
-            localStorage.removeItem(SAVE_KEY);
-        } catch {
-            // ignorar
-        }
-        this.unlockedLevels = 1;
-        this.highScore = 0;
-    }
+    // Getters de conveniencia para dados de save
+    get unlockedLevels() { return this.saveManager.unlockedLevels; }
+    get highScore() { return this.saveManager.highScore; }
 
     async loadLevel(index) {
         this.currentLevelIndex = index;
@@ -131,7 +88,7 @@ export class Game {
 
         // Manter pontuacao e vidas entre fases
         const prevScore = this.player ? this.player.score : 0;
-        const prevLives = this.player ? this.player.lives : 3;
+        const prevLives = this.player ? this.player.lives : PLAYER_LIVES;
 
         this.player = new Player(start.x, start.y, this.selectedSkin);
         this.player.score = prevScore;
@@ -175,37 +132,7 @@ export class Game {
         }
 
         if (this.state === STATE.BOSS_VICTORY) {
-            this.bossVictoryTime += dt;
-            this.particles.update(dt);
-
-            // Tocar fanfarra na primeira vez
-            if (!this.bossVictorySoundPlayed) {
-                this.bossVictorySoundPlayed = true;
-                playBossVictorySound();
-            }
-
-            // Fogos de artificio continuos
-            this.bossVictoryFireworkTimer += dt;
-            const fireworkInterval = this.bossVictoryTime < 2 ? 0.15 : 0.3;
-            if (this.bossVictoryFireworkTimer >= fireworkInterval) {
-                this.bossVictoryFireworkTimer = 0;
-                this.particles.firework(
-                    this.canvas.width, this.canvas.height,
-                    this.camera.x, this.camera.y
-                );
-                playFireworkSound();
-            }
-
-            // Chuva de estrelas douradas
-            if (this.bossVictoryTime > 1) {
-                for (let i = 0; i < 3; i++) {
-                    this.particles.goldenRain(
-                        this.canvas.width,
-                        this.camera.x, this.camera.y
-                    );
-                }
-            }
-
+            this.updateBossVictory(dt);
             return;
         }
 
@@ -216,56 +143,54 @@ export class Game {
 
         if (!this.level || !this.player) return;
 
+        this.updatePlaying(dt);
+    }
+
+    updateBossVictory(dt) {
+        this.bossVictoryTime += dt;
+        this.particles.update(dt);
+
+        if (!this.bossVictorySoundPlayed) {
+            this.bossVictorySoundPlayed = true;
+            playBossVictorySound();
+        }
+
+        // Fogos de artificio continuos
+        this.bossVictoryFireworkTimer += dt;
+        const fireworkInterval = this.bossVictoryTime < BOSS_VICTORY_FIREWORK_THRESHOLD
+            ? BOSS_VICTORY_FIREWORK_FAST : BOSS_VICTORY_FIREWORK_SLOW;
+        if (this.bossVictoryFireworkTimer >= fireworkInterval) {
+            this.bossVictoryFireworkTimer = 0;
+            this.particles.firework(this.canvas.width, this.canvas.height, this.camera.x, this.camera.y);
+            playFireworkSound();
+        }
+
+        // Chuva de estrelas douradas
+        if (this.bossVictoryTime > 1) {
+            for (let i = 0; i < 3; i++) {
+                this.particles.goldenRain(this.canvas.width, this.camera.x, this.camera.y);
+            }
+        }
+    }
+
+    updatePlaying(dt) {
         const wasOnGround = this.player.onGround;
 
         this.player.update(dt, this.input);
         this.level.update(dt);
         this.particles.update(dt);
 
-        // Som do soco (dispara quando o soco inicia — punchTimer proximo de PUNCH_DURATION)
+        // Som do soco
         if (this.player.punching && this.player.punchTimer >= this.player.PUNCH_DURATION - dt) {
             playPunchSound();
         }
 
-        // Colisao do soco com inimigos
-        const punchHit = this.player.punchHitbox;
-        if (punchHit) {
-            for (const enemy of this.level.enemies) {
-                if (!enemy.alive || enemy._punchHit) continue;
-                const enemyRect = { x: enemy.x, y: enemy.y, w: enemy.w, h: enemy.h };
-                if (checkAABB(punchHit, enemyRect)) {
-                    enemy._punchHit = true; // evitar hit multiplo no mesmo soco
-                    this.particles.punchImpact(
-                        punchHit.x + (this.player.lastDirection >= 0 ? punchHit.w : 0),
-                        punchHit.y + punchHit.h / 2
-                    );
-                    if (enemy.isBoss) {
-                        if (enemy.takeDamage()) {
-                            playPunchHitSound();
-                            if (!enemy.alive) {
-                                this.particles.enemyExplosion(enemy.x, enemy.y, enemy.w, enemy.h);
-                                this.player.score += 500;
-                                playEnemyKillSound();
-                            } else {
-                                this.player.score += 50;
-                            }
-                        }
-                    } else {
-                        this.particles.enemyExplosion(enemy.x, enemy.y, enemy.w, enemy.h);
-                        enemy.kill();
-                        this.player.score += 150;
-                        playPunchHitSound();
-                        playEnemyKillSound();
-                    }
-                }
-            }
-        }
-        // Resetar flag de punch hit quando o soco termina
-        if (!this.player.punching) {
-            for (const enemy of this.level.enemies) {
-                enemy._punchHit = false;
-            }
-        }
+        // Reconstroi grade espacial (plataformas moveis podem mudar de posicao)
+        rebuildPlatformGrid(this.level.platforms);
+
+        // Colisoes
+        handlePunchCollisions(this.player, this.level.enemies, this.particles);
+        resetPunchFlags(this.player, this.level.enemies);
 
         // Som e particulas de pulo
         if (wasOnGround && !this.player.onGround && this.player.vy < 0) {
@@ -278,140 +203,39 @@ export class Game {
             this.particles.landDust(this.player.x, this.player.y + this.player.height, this.player.width);
         }
 
-        // Verificar se jogador esta na agua
-        const playerRect = { x: this.player.x, y: this.player.y, w: this.player.width, h: this.player.height };
-        this.player.inWater = false;
-        for (const water of this.level.waterZones) {
-            if (water.contains(playerRect)) {
-                this.player.inWater = true;
-                break;
-            }
+        handleWaterCheck(this.player, this.level.waterZones);
+        handlePlatformCollisions(this.player, this.level.platforms);
+        handleItemCollisions(this.player, this.level.items, this.particles);
+        handlePowerUpCollisions(this.player, this.level.powerups, this.particles);
+
+        const enemyResult = handleEnemyCollisions(this.player, this.level.enemies, this.particles);
+        if (enemyResult === 'gameOver') {
+            this.state = STATE.GAME_OVER;
         }
 
-        // Colisao com plataformas
-        for (const platform of this.level.platforms) {
-            if (checkAABB(
-                { x: this.player.x, y: this.player.y, w: this.player.width, h: this.player.height },
-                platform
-            )) {
-                resolveCollision(this.player, platform);
-            }
-        }
-
-        // Colisao com itens
-        for (const item of this.level.items) {
-            if (!item.collected && checkAABB(playerRect, item)) {
-                this.player.score += item.collect();
-                if (item.type === 'star') {
-                    playStarSound();
-                    this.particles.starSparkle(item.x, item.y);
-                } else {
-                    playCoinSound();
-                    this.particles.coinSparkle(item.x, item.y);
-                }
-            }
-        }
-
-        // Colisao com power-ups
-        for (const powerup of this.level.powerups) {
-            if (!powerup.collected && checkAABB(playerRect, powerup)) {
-                powerup.collect();
-                this.player.applyPowerUp(powerup.type);
-                playStarSound();
-                this.particles.starSparkle(powerup.x, powerup.y);
-            }
-        }
-
-        // Colisao com inimigos
-        for (const enemy of this.level.enemies) {
-            if (!enemy.alive) continue;
-            const enemyRect = { x: enemy.x, y: enemy.y, w: enemy.w, h: enemy.h };
-            if (checkAABB(playerRect, enemyRect)) {
-                if (this.player.vy > 0 && this.player.y + this.player.height - enemy.y < 20) {
-                    if (enemy.isBoss) {
-                        if (enemy.takeDamage()) {
-                            this.player.vy = -300;
-                            this.player.score += 50;
-                            playEnemyKillSound();
-                            if (!enemy.alive) {
-                                this.particles.enemyExplosion(enemy.x, enemy.y, enemy.w, enemy.h);
-                                this.player.score += 500;
-                            }
-                        } else {
-                            this.player.vy = -300;
-                        }
-                    } else {
-                        this.particles.enemyExplosion(enemy.x, enemy.y, enemy.w, enemy.h);
-                        enemy.kill();
-                        this.player.vy = -300;
-                        this.player.score += 100;
-                        playEnemyKillSound();
-                    }
-                } else {
-                    this.player.takeDamage();
-                    if (!this.player.isAlive) {
-                        this.state = STATE.GAME_OVER;
-                        this.particles.damageParticles(this.player.x, this.player.y, this.player.width, this.player.height);
-                        playGameOverSound();
-                    } else {
-                        playDamageSound();
-                        this.particles.damageParticles(this.player.x, this.player.y, this.player.width, this.player.height);
-                    }
-                }
-            }
-
-            // Colisao com projeteis de tinta do boss
-            if (enemy.isBoss && enemy.alive) {
-                for (let i = enemy.inkAttacks.length - 1; i >= 0; i--) {
-                    const ink = enemy.inkAttacks[i];
-                    if (checkAABB(playerRect, ink)) {
-                        enemy.inkAttacks.splice(i, 1);
-                        this.player.takeDamage();
-                        if (!this.player.isAlive) {
-                            this.state = STATE.GAME_OVER;
-                            this.particles.damageParticles(this.player.x, this.player.y, this.player.width, this.player.height);
-                            playGameOverSound();
-                        } else {
-                            playDamageSound();
-                            this.particles.damageParticles(this.player.x, this.player.y, this.player.width, this.player.height);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Checar vitoria — todos os itens coletados E boss derrotado (se houver)
-        const allCollected = this.level.items.length > 0 && this.level.items.every(i => i.collected);
-        const boss = this.level.enemies.find(e => e.isBoss);
-        const bossDefeated = !boss || !boss.alive;
-        if (allCollected && bossDefeated) {
-            // Se tinha boss, ir para animacao epica
+        // Checar vitoria
+        const { won, boss } = checkVictory(this.level);
+        if (won) {
             if (boss) {
                 this.state = STATE.BOSS_VICTORY;
                 this.bossVictoryTime = 0;
                 this.bossVictoryFireworkTimer = 0;
                 this.bossVictorySoundPlayed = false;
-                // Explosao massiva no local do boss
-                this.particles.bossExplosion(boss.x || this.player.x, boss.y || this.player.y, boss.w || 80, boss.h || 70);
+                this.particles.bossExplosion(
+                    boss.x || this.player.x, boss.y || this.player.y,
+                    boss.w || BOSS_WIDTH, boss.h || BOSS_HEIGHT
+                );
             } else {
                 this.state = STATE.VICTORY;
             }
 
-            // Desbloquear proxima fase e salvar
-            // unlockedLevels e 1-based (1 = so fase 0 desbloqueada)
-            // currentLevelIndex e 0-based, entao +2 converte para 1-based da proxima fase
-            const nextUnlock = this.currentLevelIndex + 2;
-            if (nextUnlock > this.unlockedLevels) {
-                this.unlockedLevels = Math.min(nextUnlock, LEVELS.length);
-            }
-            if (this.player.score > this.highScore) {
-                this.highScore = this.player.score;
-            }
-            this.save();
+            this.saveManager.unlockNext(this.currentLevelIndex, LEVELS.length);
+            this.saveManager.updateHighScore(this.player.score);
+            this.saveManager.save();
         }
 
         // Jogador caiu do mapa
-        if (this.player.y > this.level.height + 100) {
+        if (checkFallDeath(this.player, this.level.height)) {
             this.player.lives = 0;
             this.state = STATE.GAME_OVER;
             playGameOverSound();
@@ -428,19 +252,21 @@ export class Game {
 
     render() {
         const { ctx, canvas } = this;
+        const isTouch = this.touchControls.active;
 
         if (this.state === STATE.TITLE) {
-            this.renderTitle();
+            renderTitle(ctx, canvas, this.titleTime, this.highScore, isTouch);
             return;
         }
 
         if (this.state === STATE.CHARACTER_SELECT) {
-            this.renderCharacterSelect();
+            renderCharacterSelect(ctx, canvas, this.selectTime, this.selectedSkin, isTouch);
             return;
         }
 
         if (this.state === STATE.LEVEL_SELECT) {
-            this.renderLevelSelect();
+            renderLevelSelect(ctx, canvas, this.levelSelectTime, this.selectedLevel,
+                this.unlockedLevels, LEVELS.length, this.highScore, isTouch);
             return;
         }
 
@@ -476,7 +302,7 @@ export class Game {
 
         this.camera.resetTransform(ctx);
 
-        this.renderHUD();
+        renderHUD(ctx, canvas, this.player, this.level.name);
 
         // Barra de vida do boss (se houver)
         const activeBoss = this.level.enemies.find(e => e.isBoss && e.alive);
@@ -487,593 +313,12 @@ export class Game {
         this.touchControls.render(ctx);
 
         if (this.state === STATE.GAME_OVER) {
-            this.renderGameOver();
+            renderGameOver(ctx, canvas, this.player.score, isTouch);
         } else if (this.state === STATE.BOSS_VICTORY) {
-            this.renderBossVictory();
+            renderBossVictory(ctx, canvas, this.bossVictoryTime, this.player.score, this.highScore, isTouch);
         } else if (this.state === STATE.VICTORY) {
-            this.renderVictory();
-        }
-    }
-
-    renderTitle() {
-        const { ctx, canvas } = this;
-        const w = canvas.width;
-        const h = canvas.height;
-
-        const gradient = ctx.createLinearGradient(0, 0, 0, h);
-        gradient.addColorStop(0, '#0f0c29');
-        gradient.addColorStop(0.5, '#302b63');
-        gradient.addColorStop(1, '#24243e');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, w, h);
-
-        const float = Math.sin(this.titleTime * 2) * 8;
-
-        ctx.fillStyle = '#e74c3c';
-        ctx.font = 'bold 64px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('CECI GAME', w / 2, h / 2 - 60 + float);
-
-        ctx.fillStyle = '#3498db';
-        ctx.font = '24px monospace';
-        ctx.fillText('Aventura de Plataforma', w / 2, h / 2 - 10 + float);
-
-        if (Math.floor(this.titleTime * 2) % 2 === 0) {
-            ctx.fillStyle = '#fff';
-            ctx.font = '20px monospace';
-            const touchMsg = this.touchControls.active ? 'Toque para jogar' : 'Pressione ENTER para jogar';
-            ctx.fillText(touchMsg, w / 2, h / 2 + 60);
-        }
-
-        // Mostrar high score se tiver save
-        if (this.highScore > 0) {
-            ctx.fillStyle = '#f1c40f';
-            ctx.font = '16px monospace';
-            ctx.fillText(`Recorde: ${this.highScore}`, w / 2, h / 2 + 100);
-        }
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.font = '14px monospace';
-        if (this.touchControls.active) {
-            ctx.fillText('Joystick = Mover  |  Botoes = Pular / Socar', w / 2, h - 40);
-        } else {
-            ctx.fillText('Setas/WASD = Mover  |  Espaco = Pular  |  X/Z = Soco', w / 2, h - 40);
-        }
-    }
-
-    renderHUD() {
-        const { ctx } = this;
-        ctx.font = 'bold 18px monospace';
-        ctx.textAlign = 'left';
-
-        for (let i = 0; i < this.player.lives; i++) {
-            ctx.fillStyle = '#e74c3c';
-            ctx.fillText('\u2665', 20 + i * 25, 30);
-        }
-
-        ctx.fillStyle = '#f1c40f';
-        ctx.fillText(`${this.player.score}`, 20, 55);
-
-        // Power-up ativo
-        let powerupY = 75;
-        if (this.player.speedBoost) {
-            ctx.fillStyle = '#2ecc71';
-            ctx.font = '14px monospace';
-            ctx.fillText(`Velocidade: ${Math.ceil(this.player.speedTimer)}s`, 20, powerupY);
-            powerupY += 18;
-        }
-        if (this.player.doubleJump) {
-            ctx.fillStyle = '#3498db';
-            ctx.font = '14px monospace';
-            ctx.fillText(`Pulo Duplo: ${Math.ceil(this.player.doubleJumpTimer)}s`, 20, powerupY);
-        }
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.font = '14px monospace';
-        ctx.textAlign = 'right';
-        ctx.fillText(this.level.name, this.canvas.width - 20, 30);
-    }
-
-    renderGameOver() {
-        const { ctx, canvas } = this;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = '#e74c3c';
-        ctx.font = 'bold 48px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
-
-        ctx.fillStyle = '#fff';
-        ctx.font = '20px monospace';
-        ctx.fillText(`Pontuacao: ${this.player.score}`, canvas.width / 2, canvas.height / 2 + 30);
-        if (this.touchControls.active) {
-            ctx.fillText('Toque acima = Tentar novamente', canvas.width / 2, canvas.height / 2 + 65);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-            ctx.font = '16px monospace';
-            ctx.fillText('Toque abaixo = Selecao de fases', canvas.width / 2, canvas.height / 2 + 95);
-        } else {
-            ctx.fillText('R = Tentar novamente', canvas.width / 2, canvas.height / 2 + 65);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-            ctx.font = '16px monospace';
-            ctx.fillText('ESC = Selecao de fases', canvas.width / 2, canvas.height / 2 + 95);
-        }
-    }
-
-    renderVictory() {
-        const { ctx, canvas } = this;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = '#2ecc71';
-        ctx.font = 'bold 48px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('FASE COMPLETA!', canvas.width / 2, canvas.height / 2 - 20);
-
-        ctx.fillStyle = '#f1c40f';
-        ctx.font = '24px monospace';
-        ctx.fillText(`Pontuacao: ${this.player.score}`, canvas.width / 2, canvas.height / 2 + 30);
-
-        // Novo recorde?
-        if (this.player.score >= this.highScore && this.highScore > 0) {
-            ctx.fillStyle = '#e74c3c';
-            ctx.font = 'bold 18px monospace';
-            ctx.fillText('NOVO RECORDE!', canvas.width / 2, canvas.height / 2 + 55);
-        }
-
-        const hasNextLevel = this.currentLevelIndex + 1 < LEVELS.length;
-        ctx.fillStyle = '#fff';
-        ctx.font = '20px monospace';
-        if (hasNextLevel) {
-            const nextMsg = this.touchControls.active ? 'Toque acima = Proxima fase' : 'ENTER = Proxima fase';
-            ctx.fillText(nextMsg, canvas.width / 2, canvas.height / 2 + 80);
-        } else {
-            ctx.fillText('Parabens! Voce completou o jogo!', canvas.width / 2, canvas.height / 2 + 80);
-        }
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.font = '16px monospace';
-        const selectMsg = this.touchControls.active ? 'Toque abaixo = Selecao de fases' : 'R = Selecao de fases';
-        ctx.fillText(selectMsg, canvas.width / 2, canvas.height / 2 + 110);
-
-        // Salvo automaticamente
-        ctx.fillStyle = 'rgba(46, 204, 113, 0.6)';
-        ctx.font = '12px monospace';
-        ctx.fillText('Progresso salvo automaticamente', canvas.width / 2, canvas.height / 2 + 140);
-    }
-
-    renderBossVictory() {
-        const { ctx, canvas } = this;
-        const w = canvas.width;
-        const h = canvas.height;
-        const t = this.bossVictoryTime;
-
-        // Fase 1 (0-2s): Flash branco + explosao
-        // Fase 2 (2-4s): Escurece + fogos
-        // Fase 3 (4-6s): Titulo aparece
-        // Fase 4 (6-8s): Mensagem principal
-        // Fase 5 (8s+): Tela final com instrucoes
-
-        // Overlay escurecendo progressivamente
-        const overlayAlpha = Math.min(0.85, t * 0.2);
-        ctx.fillStyle = `rgba(0, 0, 0, ${overlayAlpha})`;
-        ctx.fillRect(0, 0, w, h);
-
-        // Flash branco inicial (0-1s)
-        if (t < 1) {
-            const flashAlpha = (1 - t) * 0.8;
-            ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
-            ctx.fillRect(0, 0, w, h);
-        }
-
-        // Raios de luz radiais (1-6s)
-        if (t > 1 && t < 7) {
-            const rayAlpha = Math.min(0.15, (t - 1) * 0.05) * (t < 6 ? 1 : (7 - t));
-            ctx.save();
-            ctx.translate(w / 2, h / 2);
-            const numRays = 16;
-            for (let i = 0; i < numRays; i++) {
-                const angle = (Math.PI * 2 / numRays) * i + t * 0.2;
-                ctx.fillStyle = `rgba(241, 196, 15, ${rayAlpha})`;
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                const rayLen = Math.max(w, h);
-                ctx.lineTo(Math.cos(angle - 0.05) * rayLen, Math.sin(angle - 0.05) * rayLen);
-                ctx.lineTo(Math.cos(angle + 0.05) * rayLen, Math.sin(angle + 0.05) * rayLen);
-                ctx.closePath();
-                ctx.fill();
-            }
-            ctx.restore();
-        }
-
-        // Circulos de onda expandindo (1.5-5s)
-        if (t > 1.5 && t < 5) {
-            for (let ring = 0; ring < 3; ring++) {
-                const ringT = t - 1.5 - ring * 0.5;
-                if (ringT > 0 && ringT < 2) {
-                    const radius = ringT * 300;
-                    const ringAlpha = (1 - ringT / 2) * 0.3;
-                    ctx.strokeStyle = `rgba(241, 196, 15, ${ringAlpha})`;
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.arc(w / 2, h / 2, radius, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-            }
-        }
-
-        // Titulo "BOSS DERROTADO!" (aparece em 2s, com scale-in)
-        if (t > 2) {
-            const titleT = Math.min(1, (t - 2) * 1.5);
-            const scale = 0.3 + titleT * 0.7 + Math.sin(t * 2) * 0.02;
-            const titleAlpha = titleT;
-
-            ctx.save();
-            ctx.translate(w / 2, h / 2 - 100);
-            ctx.scale(scale, scale);
-            ctx.globalAlpha = titleAlpha;
-
-            // Sombra
-            ctx.fillStyle = '#000';
-            ctx.font = 'bold 52px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText('BOSS DERROTADO!', 2, 2);
-
-            // Texto com gradiente simulado (amarelo -> laranja)
-            const pulse = Math.sin(t * 4) * 0.1 + 0.9;
-            ctx.fillStyle = `rgb(${Math.floor(241 * pulse)}, ${Math.floor(196 * pulse)}, ${Math.floor(15 * pulse)})`;
-            ctx.fillText('BOSS DERROTADO!', 0, 0);
-
-            ctx.globalAlpha = 1;
-            ctx.restore();
-        }
-
-        // Subtitulo "Polvo Gigante eliminado" (3.5s)
-        if (t > 3.5) {
-            const subAlpha = Math.min(1, (t - 3.5) * 2);
-            ctx.globalAlpha = subAlpha;
-            ctx.fillStyle = '#e74c3c';
-            ctx.font = 'bold 20px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText('Polvo Gigante eliminado!', w / 2, h / 2 - 50);
-            ctx.globalAlpha = 1;
-        }
-
-        // Mensagem principal "O Mundo Ceci foi Salvo!" (5s, com animacao letra por letra)
-        if (t > 5) {
-            const msg = 'O Mundo Ceci foi Salvo!';
-            const msgT = t - 5;
-            const visibleChars = Math.min(msg.length, Math.floor(msgT * 12));
-            const visibleMsg = msg.substring(0, visibleChars);
-
-            // Glow atras do texto
-            const glowAlpha = Math.min(0.3, msgT * 0.1);
-            ctx.fillStyle = `rgba(46, 204, 113, ${glowAlpha})`;
-            ctx.beginPath();
-            ctx.ellipse(w / 2, h / 2 + 20, 280, 40, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Texto principal
-            const float = Math.sin(t * 1.5) * 5;
-            ctx.fillStyle = '#2ecc71';
-            ctx.font = 'bold 40px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText(visibleMsg, w / 2, h / 2 + 25 + float);
-
-            // Brilho extra quando a frase completa
-            if (visibleChars >= msg.length) {
-                const completeT = msgT - msg.length / 12;
-                if (completeT > 0 && completeT < 1) {
-                    const burstAlpha = (1 - completeT) * 0.4;
-                    ctx.fillStyle = `rgba(46, 204, 113, ${burstAlpha})`;
-                    ctx.beginPath();
-                    ctx.ellipse(w / 2, h / 2 + 20, 300 + completeT * 200, 50 + completeT * 100, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-        }
-
-        // Pontuacao (7s)
-        if (t > 7) {
-            const scoreAlpha = Math.min(1, (t - 7) * 2);
-            ctx.globalAlpha = scoreAlpha;
-
-            ctx.fillStyle = '#f1c40f';
-            ctx.font = 'bold 24px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText(`Pontuacao Final: ${this.player.score}`, w / 2, h / 2 + 85);
-
-            if (this.player.score >= this.highScore && this.highScore > 0) {
-                ctx.fillStyle = '#e74c3c';
-                ctx.font = 'bold 16px monospace';
-                ctx.fillText('NOVO RECORDE!', w / 2, h / 2 + 110);
-            }
-
-            ctx.globalAlpha = 1;
-        }
-
-        // Estrelas decorativas girando ao redor (3s+)
-        if (t > 3) {
-            ctx.save();
-            const numStars = 8;
-            const starOrbitRadius = 180 + Math.sin(t) * 20;
-            for (let i = 0; i < numStars; i++) {
-                const angle = (Math.PI * 2 / numStars) * i + t * 0.5;
-                const sx = w / 2 + Math.cos(angle) * starOrbitRadius;
-                const sy = h / 2 + Math.sin(angle) * starOrbitRadius * 0.4;
-                const starSize = 6 + Math.sin(t * 3 + i) * 2;
-                ctx.fillStyle = `rgba(241, 196, 15, ${0.4 + Math.sin(t * 2 + i) * 0.3})`;
-                this.drawStarShape(ctx, sx, sy, 5, starSize, starSize * 0.4);
-            }
-            ctx.restore();
-        }
-
-        // Instrucoes (9s)
-        if (t > 9) {
-            const instrAlpha = Math.min(1, (t - 9) * 1.5);
-            if (Math.floor(t * 2) % 2 === 0) {
-                ctx.globalAlpha = instrAlpha;
-                ctx.fillStyle = '#fff';
-                ctx.font = '18px monospace';
-                ctx.textAlign = 'center';
-                const msg = this.touchControls.active ? 'Toque para continuar' : 'Pressione ENTER para continuar';
-                ctx.fillText(msg, w / 2, h / 2 + 160);
-                ctx.globalAlpha = 1;
-            }
-
-            ctx.fillStyle = 'rgba(46, 204, 113, 0.5)';
-            ctx.font = '12px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText('Progresso salvo automaticamente', w / 2, h / 2 + 190);
-        }
-    }
-
-    // Helper para desenhar estrela na tela de boss victory
-    drawStarShape(ctx, cx, cy, points, outerR, innerR) {
-        ctx.beginPath();
-        for (let i = 0; i < points * 2; i++) {
-            const r = i % 2 === 0 ? outerR : innerR;
-            const angle = (Math.PI / points) * i - Math.PI / 2;
-            if (i === 0) {
-                ctx.moveTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
-            } else {
-                ctx.lineTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
-            }
-        }
-        ctx.closePath();
-        ctx.fill();
-    }
-
-    renderCharacterSelect() {
-        const { ctx, canvas } = this;
-        const w = canvas.width;
-        const h = canvas.height;
-
-        // Fundo gradiente
-        const gradient = ctx.createLinearGradient(0, 0, 0, h);
-        gradient.addColorStop(0, '#0f0c29');
-        gradient.addColorStop(0.5, '#302b63');
-        gradient.addColorStop(1, '#24243e');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, w, h);
-
-        // Titulo
-        ctx.fillStyle = '#f1c40f';
-        ctx.font = 'bold 36px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('ESCOLHA SEU PERSONAGEM', w / 2, 80);
-
-        // Desenhar os 3 personagens
-        const spacing = Math.min(220, w / 4);
-        const baseX = w / 2;
-        const baseY = h / 2 - 20;
-
-        for (let i = 0; i < 3; i++) {
-            const px = baseX + (i - 1) * spacing;
-            const py = baseY;
-            const isSelected = i === this.selectedSkin;
-
-            // Glow/destaque no selecionado
-            if (isSelected) {
-                const bounce = Math.sin(this.selectTime * 3) * 4;
-                // Glow amarelo
-                ctx.fillStyle = 'rgba(241, 196, 15, 0.15)';
-                ctx.beginPath();
-                ctx.arc(px, py + bounce, 70, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Borda
-                ctx.strokeStyle = '#f1c40f';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(px, py + bounce, 68, 0, Math.PI * 2);
-                ctx.stroke();
-
-                // Desenhar personagem com bounce
-                drawPlayerPreview(ctx, px, py - 10 + bounce, i, 3);
-            } else {
-                // Personagem sem destaque (mais escuro)
-                ctx.globalAlpha = 0.5;
-                drawPlayerPreview(ctx, px, py - 10, i, 2.5);
-                ctx.globalAlpha = 1;
-            }
-
-            // Nome do personagem
-            ctx.fillStyle = isSelected ? '#f1c40f' : 'rgba(255,255,255,0.5)';
-            ctx.font = isSelected ? 'bold 20px monospace' : '16px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText(SKINS[i].name, px, py + 80);
-
-            // Descricao
-            ctx.fillStyle = isSelected ? '#fff' : 'rgba(255,255,255,0.3)';
-            ctx.font = '14px monospace';
-            ctx.fillText(SKINS[i].desc, px, py + 102);
-        }
-
-        // Setas indicadoras
-        ctx.fillStyle = '#f1c40f';
-        ctx.font = 'bold 30px monospace';
-        ctx.textAlign = 'center';
-        // Seta esquerda
-        if (this.selectedSkin > 0) {
-            ctx.fillText('<', baseX - 1.5 * spacing - 10, baseY);
-        }
-        // Seta direita
-        if (this.selectedSkin < 2) {
-            ctx.fillText('>', baseX + 1.5 * spacing + 10, baseY);
-        }
-
-        // Instrucoes
-        if (Math.floor(this.selectTime * 2) % 2 === 0) {
-            ctx.fillStyle = '#fff';
-            ctx.font = '20px monospace';
-            const msg = this.touchControls.active ? 'Toque no personagem para jogar' : 'Pressione ENTER para confirmar';
-            ctx.fillText(msg, w / 2, h - 80);
-        }
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.font = '14px monospace';
-        if (!this.touchControls.active) {
-            ctx.fillText('Setas <- -> para escolher', w / 2, h - 40);
-        }
-    }
-
-    renderLevelSelect() {
-        const { ctx, canvas } = this;
-        const w = canvas.width;
-        const h = canvas.height;
-
-        // Fundo gradiente
-        const gradient = ctx.createLinearGradient(0, 0, 0, h);
-        gradient.addColorStop(0, '#0f0c29');
-        gradient.addColorStop(0.5, '#302b63');
-        gradient.addColorStop(1, '#24243e');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, w, h);
-
-        // Titulo
-        ctx.fillStyle = '#f1c40f';
-        ctx.font = 'bold 36px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('SELECIONE A FASE', w / 2, 80);
-
-        // Desenhar cards das fases
-        const spacing = Math.min(200, (w - 100) / LEVELS.length);
-        const baseX = w / 2;
-        const baseY = h / 2 - 30;
-
-        for (let i = 0; i < LEVELS.length; i++) {
-            const px = baseX + (i - Math.floor(LEVELS.length / 2)) * spacing;
-            const py = baseY;
-            const isSelected = i === this.selectedLevel;
-            const isUnlocked = i < this.unlockedLevels;
-
-            // Card de fundo
-            const cardW = 140;
-            const cardH = 160;
-            const cx = px - cardW / 2;
-            const cy = py - cardH / 2;
-
-            if (isSelected) {
-                const bounce = Math.sin(this.levelSelectTime * 3) * 3;
-
-                // Glow
-                ctx.fillStyle = isUnlocked ? 'rgba(241, 196, 15, 0.15)' : 'rgba(150, 150, 150, 0.1)';
-                ctx.fillRect(cx - 6, cy - 6 + bounce, cardW + 12, cardH + 12);
-
-                // Borda
-                ctx.strokeStyle = isUnlocked ? '#f1c40f' : '#666';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(cx - 4, cy - 4 + bounce, cardW + 8, cardH + 8);
-
-                // Card
-                ctx.fillStyle = isUnlocked ? 'rgba(52, 152, 219, 0.3)' : 'rgba(80, 80, 80, 0.3)';
-                ctx.fillRect(cx, cy + bounce, cardW, cardH);
-
-                // Numero da fase (grande)
-                ctx.fillStyle = isUnlocked ? '#fff' : '#666';
-                ctx.font = 'bold 48px monospace';
-                ctx.fillText(`${i + 1}`, px, py - 10 + bounce);
-
-                // Nome
-                ctx.fillStyle = isUnlocked ? '#f1c40f' : '#555';
-                ctx.font = '13px monospace';
-                ctx.fillText(LEVEL_NAMES[i].split(' - ')[1] || LEVEL_NAMES[i], px, py + 35 + bounce);
-
-                // Status
-                if (!isUnlocked) {
-                    ctx.fillStyle = '#e74c3c';
-                    ctx.font = '12px monospace';
-                    ctx.fillText('BLOQUEADA', px, py + 58 + bounce);
-                } else {
-                    ctx.fillStyle = '#2ecc71';
-                    ctx.font = '12px monospace';
-                    ctx.fillText('DESBLOQUEADA', px, py + 58 + bounce);
-                }
-            } else {
-                ctx.globalAlpha = isUnlocked ? 0.5 : 0.25;
-
-                // Card
-                ctx.fillStyle = isUnlocked ? 'rgba(52, 152, 219, 0.2)' : 'rgba(80, 80, 80, 0.2)';
-                ctx.fillRect(cx, cy, cardW, cardH);
-
-                // Numero
-                ctx.fillStyle = isUnlocked ? '#aaa' : '#555';
-                ctx.font = 'bold 48px monospace';
-                ctx.fillText(`${i + 1}`, px, py - 10);
-
-                // Nome
-                ctx.fillStyle = isUnlocked ? '#888' : '#444';
-                ctx.font = '13px monospace';
-                ctx.fillText(LEVEL_NAMES[i].split(' - ')[1] || LEVEL_NAMES[i], px, py + 35);
-
-                // Cadeado para fases bloqueadas
-                if (!isUnlocked) {
-                    ctx.fillStyle = '#555';
-                    ctx.font = '24px monospace';
-                    ctx.fillText('🔒', px, py + 60);
-                }
-
-                ctx.globalAlpha = 1;
-            }
-        }
-
-        // Setas
-        ctx.fillStyle = '#f1c40f';
-        ctx.font = 'bold 30px monospace';
-        if (this.selectedLevel > 0) {
-            ctx.fillText('<', baseX - Math.floor(LEVELS.length / 2) * spacing - 50, baseY);
-        }
-        if (this.selectedLevel < LEVELS.length - 1) {
-            ctx.fillText('>', baseX + Math.floor(LEVELS.length / 2) * spacing + 50, baseY);
-        }
-
-        // Instrucoes
-        if (Math.floor(this.levelSelectTime * 2) % 2 === 0) {
-            ctx.fillStyle = '#fff';
-            ctx.font = '20px monospace';
-            if (this.touchControls.active) {
-                ctx.fillText('Toque na fase para jogar', w / 2, h - 80);
-            } else if (this.selectedLevel < this.unlockedLevels) {
-                ctx.fillText('Pressione ENTER para jogar', w / 2, h - 80);
-            } else {
-                ctx.fillStyle = '#e74c3c';
-                ctx.fillText('Complete a fase anterior para desbloquear', w / 2, h - 80);
-            }
-        }
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.font = '14px monospace';
-        if (!this.touchControls.active) {
-            ctx.fillText('Setas <- -> para escolher  |  ESC para voltar', w / 2, h - 40);
-        }
-
-        // High score
-        if (this.highScore > 0) {
-            ctx.fillStyle = 'rgba(241, 196, 15, 0.6)';
-            ctx.font = '14px monospace';
-            ctx.textAlign = 'right';
-            ctx.fillText(`Recorde: ${this.highScore}`, w - 20, 30);
-            ctx.textAlign = 'center';
+            renderVictory(ctx, canvas, this.player.score, this.highScore,
+                this.currentLevelIndex, LEVELS.length, isTouch);
         }
     }
 
@@ -1099,11 +344,11 @@ export class Game {
             } else if (code === 'ArrowRight' || code === 'KeyD') {
                 this.selectedLevel = Math.min(LEVELS.length - 1, this.selectedLevel + 1);
             } else if (code === 'Enter') {
-                // So pode jogar fases desbloqueadas
                 if (this.selectedLevel < this.unlockedLevels) {
                     this.player = null;
+                    this.saveManager.skin = this.selectedSkin;
                     this.loadLevel(this.selectedLevel);
-                    this.save(); // salvar skin escolhida
+                    this.saveManager.save();
                 }
             } else if (code === 'Escape') {
                 this.state = STATE.CHARACTER_SELECT;
@@ -1150,7 +395,6 @@ export class Game {
                 const dist = Math.hypot(x - px, y - baseY);
                 if (dist < 70) {
                     this.selectedSkin = i;
-                    // Segundo toque no mesmo personagem confirma
                     this.state = STATE.LEVEL_SELECT;
                     this.levelSelectTime = 0;
                     this.selectedLevel = 0;
@@ -1176,8 +420,9 @@ export class Game {
                     if (i < this.unlockedLevels) {
                         this.selectedLevel = i;
                         this.player = null;
+                        this.saveManager.skin = this.selectedSkin;
                         this.loadLevel(i);
-                        this.save();
+                        this.saveManager.save();
                     }
                     return;
                 }
@@ -1186,12 +431,10 @@ export class Game {
         }
 
         if (this.state === STATE.GAME_OVER) {
-            // Toque na metade superior = tentar novamente
             if (y < h * 0.6) {
                 this.player = null;
                 this.loadLevel(this.currentLevelIndex);
             } else {
-                // Metade inferior = seletor de fases
                 this.player = null;
                 this.state = STATE.LEVEL_SELECT;
                 this.levelSelectTime = 0;
@@ -1223,5 +466,10 @@ export class Game {
     resize() {
         this.camera.resize(this.canvas.width, this.canvas.height);
         this.touchControls.updateLayout();
+    }
+
+    destroy() {
+        this.input.destroy();
+        this.touchControls.destroy();
     }
 }

@@ -18,13 +18,25 @@ Ceci_Game/
 │   └── style.css       # Estilos
 ├── js/
 │   ├── main.js         # Entry point e game loop
-│   ├── game.js         # Classe principal do jogo
+│   ├── game.js         # Classe principal (orquestrador)
+│   ├── constants.js    # Constantes de gameplay
+│   ├── skins-data.js   # Dados visuais dos personagens
+│   ├── save-manager.js # Persistencia (localStorage)
+│   ├── collision.js    # Sistema de colisao
+│   ├── spatial-grid.js # Grade espacial (performance)
+│   ├── menu-renderer.js # Renderizacao de menus e HUD
 │   ├── player.js       # Logica do jogador
+│   ├── enemy.js        # Inimigos e boss
+│   ├── item.js         # Itens coletaveis
+│   ├── powerup.js      # Power-ups
 │   ├── level.js        # Sistema de fases
-│   ├── platform.js     # Plataformas e colisoes
+│   ├── platform.js     # Plataformas e colisoes AABB
 │   ├── input.js        # Captura de input (teclado)
+│   ├── touch.js        # Controles touch (mobile)
 │   ├── camera.js       # Camera e viewport
-│   └── renderer.js     # Renderizacao no canvas
+│   ├── renderer.js     # Renderizacao no canvas
+│   ├── audio.js        # Efeitos sonoros (Web Audio API)
+│   └── particles.js    # Sistema de particulas
 ├── assets/
 │   ├── sprites/        # Sprites e spritesheets
 │   ├── audio/          # Sons e musica

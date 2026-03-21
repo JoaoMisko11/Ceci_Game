@@ -1,5 +1,18 @@
+import { PARTICLE_GRAVITY } from './constants.js';
+
 class Particle {
-    constructor(x, y, vx, vy, life, color, size) {
+    constructor() {
+        this.x = 0;
+        this.y = 0;
+        this.vx = 0;
+        this.vy = 0;
+        this.life = 0;
+        this.maxLife = 0;
+        this.color = '#fff';
+        this.size = 3;
+    }
+
+    init(x, y, vx, vy, life, color, size) {
         this.x = x;
         this.y = y;
         this.vx = vx;
@@ -21,7 +34,7 @@ class Particle {
     update(dt) {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
-        this.vy += 300 * dt; // gravidade leve
+        this.vy += PARTICLE_GRAVITY * dt; // gravidade leve
         this.life -= dt;
     }
 
@@ -34,9 +47,41 @@ class Particle {
     }
 }
 
+// Pool pre-alocado para evitar criacao/GC de particulas
+const POOL_SIZE = 512;
+const pool = new Array(POOL_SIZE);
+let poolIndex = 0;
+
+// Pre-alocar todas as particulas
+for (let i = 0; i < POOL_SIZE; i++) {
+    pool[i] = new Particle();
+}
+
+function acquireParticle(x, y, vx, vy, life, color, size) {
+    // Procura uma particula morta no pool
+    for (let i = 0; i < POOL_SIZE; i++) {
+        const idx = (poolIndex + i) % POOL_SIZE;
+        if (!pool[idx].alive) {
+            pool[idx].init(x, y, vx, vy, life, color, size);
+            poolIndex = (idx + 1) % POOL_SIZE;
+            return pool[idx];
+        }
+    }
+    // Pool cheio — recicla a mais antiga
+    pool[poolIndex].init(x, y, vx, vy, life, color, size);
+    const p = pool[poolIndex];
+    poolIndex = (poolIndex + 1) % POOL_SIZE;
+    return p;
+}
+
 export class ParticleSystem {
     constructor() {
         this.particles = [];
+    }
+
+    _add(x, y, vx, vy, life, color, size) {
+        const p = acquireParticle(x, y, vx, vy, life, color, size);
+        this.particles.push(p);
     }
 
     emit(x, y, count, config = {}) {
@@ -54,7 +99,7 @@ export class ParticleSystem {
             const vy = -Math.random() * speedY;
             const pLife = life * (0.5 + Math.random() * 0.5);
             const pSize = size * (0.5 + Math.random() * 0.5);
-            this.particles.push(new Particle(x, y, vx, vy, pLife, color, pSize));
+            this._add(x, y, vx, vy, pLife, color, pSize);
         }
     }
 
@@ -149,7 +194,7 @@ export class ParticleSystem {
                 const vy = Math.sin(angle) * speed;
                 const life = 1 + Math.random() * 1.5;
                 const size = 3 + Math.random() * 5;
-                this.particles.push(new Particle(cx, cy, vx, vy, life, color, size));
+                this._add(cx, cy, vx, vy, life, color, size);
             }
         }
     }
@@ -178,21 +223,21 @@ export class ParticleSystem {
             const color = palette[Math.floor(Math.random() * palette.length)];
             const life = 0.8 + Math.random() * 1.2;
             const size = 2 + Math.random() * 4;
-            this.particles.push(new Particle(cx, cy, vx, vy, life, color, size));
+            this._add(cx, cy, vx, vy, life, color, size);
         }
 
         // Sparkles centrais
         for (let i = 0; i < 8; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 20 + Math.random() * 40;
-            this.particles.push(new Particle(
+            this._add(
                 cx, cy,
                 Math.cos(angle) * speed,
                 Math.sin(angle) * speed,
                 0.5 + Math.random() * 0.5,
                 '#fff',
                 1 + Math.random() * 2
-            ));
+            );
         }
     }
 
@@ -206,21 +251,26 @@ export class ParticleSystem {
         const vy = 30 + Math.random() * 60;
         const life = 2 + Math.random() * 2;
         const size = 2 + Math.random() * 3;
-        this.particles.push(new Particle(x, y, vx, vy, life, color, size));
+        this._add(x, y, vx, vy, life, color, size);
     }
 
     update(dt) {
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            this.particles[i].update(dt);
-            if (!this.particles[i].alive) {
-                this.particles.splice(i, 1);
+        // Atualiza e remove mortas sem splice (swap-and-pop)
+        let writeIdx = 0;
+        for (let i = 0; i < this.particles.length; i++) {
+            const p = this.particles[i];
+            p.update(dt);
+            if (p.alive) {
+                this.particles[writeIdx] = p;
+                writeIdx++;
             }
         }
+        this.particles.length = writeIdx;
     }
 
     render(ctx) {
-        for (const p of this.particles) {
-            p.render(ctx);
+        for (let i = 0; i < this.particles.length; i++) {
+            this.particles[i].render(ctx);
         }
     }
 }
