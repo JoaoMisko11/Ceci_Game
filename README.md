@@ -41,18 +41,26 @@ Instale o Node.js em https://nodejs.org (basta baixar e instalar, depois rodar `
 | Espaco / Seta cima | Pular |
 | X / Z | Soco |
 
+### Mobile (Touch)
+
+- **Joystick virtual** (lado esquerdo) — mover
+- **Botao A** — pular
+- **Botao B** — soco
+
 ## Funcionalidades
 
 - 3 personagens selecionaveis (Luna, Mei, Leo)
-- 3 fases com dificuldade progressiva (tutorial, avancado, aquatico)
+- 4 fases com dificuldade progressiva (tutorial, avancado, profundezas, oceano profundo)
+- Boss final na fase 4 (polvo) com animacao de vitoria epica
 - Seletor de fases com progresso salvo
 - Inimigos terrestres, voadores e nadadores com IA de patrulha
 - Plataformas moveis e quebraveis
 - Zonas de agua com fisica aquatica
 - Power-ups temporarios (velocidade, pulo duplo)
 - Mecanica de soco para atacar inimigos
+- Controles touch para mobile (joystick virtual e botoes de acao)
 - Efeitos sonoros sintetizados via Web Audio API
-- Sistema de particulas (poeira, brilho, explosoes)
+- Sistema de particulas (poeira, brilho, explosoes, fogos de artificio)
 - Background com parallax (ceu, estrelas, montanhas)
 - Tela de titulo, selecao de personagem, HUD, game over e vitoria
 - Progresso salvo automaticamente (localStorage)
@@ -135,16 +143,24 @@ Ceci_Game/
 ├── js/
 │   ├── main.js         # Entry point e game loop
 │   ├── game.js         # Orquestrador e maquina de estados
+│   ├── constants.js    # Constantes de gameplay
+│   ├── skins-data.js   # Dados visuais dos personagens
+│   ├── save-manager.js # Persistencia (localStorage)
+│   ├── collision.js    # Sistema de colisao
+│   ├── spatial-grid.js # Grade espacial (performance)
+│   ├── menu-renderer.js# Renderizacao de menus e HUD
 │   ├── player.js       # Jogador (movimento, pulo, soco)
-│   ├── enemy.js        # Inimigos (patrulha, voador, nadador)
+│   ├── enemy.js        # Inimigos (patrulha, voador, nadador, boss)
 │   ├── item.js         # Coletaveis (moedas, estrelas)
 │   ├── powerup.js      # Power-ups temporarios
 │   ├── platform.js     # Plataformas e colisao AABB
 │   ├── level.js        # Carregamento de fases
 │   ├── camera.js       # Camera com limites do mapa
 │   ├── input.js        # Captura de teclado
+│   ├── touch.js        # Controles touch (mobile)
 │   ├── renderer.js     # Renderizacao e skins
 │   ├── audio.js        # Sons sintetizados
 │   └── particles.js    # Sistema de particulas
+├── tests/              # Testes unitarios (vitest)
 └── assets/levels/      # Dados das fases (JSON)
 ```
