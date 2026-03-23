@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ceci-game-v5';
+const CACHE_NAME = 'ceci-game-v6';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -6,6 +6,12 @@ const ASSETS_TO_CACHE = [
   './css/style.css',
   './js/main.js',
   './js/game.js',
+  './js/constants.js',
+  './js/skins-data.js',
+  './js/save-manager.js',
+  './js/collision.js',
+  './js/spatial-grid.js',
+  './js/menu-renderer.js',
   './js/player.js',
   './js/input.js',
   './js/platform.js',
