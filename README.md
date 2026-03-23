@@ -52,7 +52,8 @@ Instale o Node.js em https://nodejs.org (basta baixar e instalar, depois rodar `
 - 3 personagens selecionaveis (Luna, Mei, Leo)
 - 4 fases com dificuldade progressiva (tutorial, avancado, profundezas, oceano profundo)
 - Boss final na fase 4 (polvo) com animacao de vitoria epica
-- Seletor de fases com progresso salvo
+- 3 slots de save independentes (continuar jogo ou comecar novo)
+- Seletor de fases com progresso salvo por slot
 - Inimigos terrestres, voadores e nadadores com IA de patrulha
 - Plataformas moveis e quebraveis
 - Zonas de agua com fisica aquatica
@@ -63,7 +64,7 @@ Instale o Node.js em https://nodejs.org (basta baixar e instalar, depois rodar `
 - Sistema de particulas (poeira, brilho, explosoes, fogos de artificio)
 - Background com parallax (ceu, estrelas, montanhas)
 - Tela de titulo, selecao de personagem, HUD, game over e vitoria
-- Progresso salvo automaticamente (localStorage)
+- Progresso salvo automaticamente por slot (localStorage)
 - PWA — instalavel e funciona offline
 
 ## Jogar Online

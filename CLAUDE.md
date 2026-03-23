@@ -64,6 +64,7 @@ Ceci_Game/
 - **Antes de iniciar qualquer tarefa:** ler o arquivo `implementation.md` para entender o estado atual do projeto e o que precisa ser feito
 - **Ao concluir uma tarefa:** atualizar o arquivo `implementation.md` marcando os itens finalizados (`[x]`) e adicionando notas relevantes se necessario
 - **Ao atualizar o codigo:** sempre atualizar o arquivo `diagrama-projeto.html` para refletir as mudancas feitas no codigo
+- **Ao atualizar o codigo:** sempre atualizar o arquivo `README.md` para refletir as mudancas feitas no projeto
 
 ## Regras
 

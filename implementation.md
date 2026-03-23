@@ -93,6 +93,10 @@ Jogo de plataforma 2D para web com HTML5 Canvas.
 - [x] Carregar save ao abrir o jogo (progresso restaurado automaticamente)
 - [x] Seletor de fases (tela com cards, fases bloqueadas/desbloqueadas)
 - [x] Game Over: R para tentar novamente a mesma fase, ESC para seletor
+- [x] Sistema de 3 slots de save independentes (continuar jogo existente ou iniciar novo)
+- [x] Tela de selecao de save com preview (personagem, fases, recorde, data)
+- [x] Migracao automatica do formato antigo para slot 0
+- [x] Apagar save individual (DEL/Backspace com confirmacao)
 
 ## Fase 10 - Mecanicas Avancadas de Movimento
 

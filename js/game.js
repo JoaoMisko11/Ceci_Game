@@ -18,11 +18,13 @@ import {
 } from './collision.js';
 import {
     renderTitle, renderHUD, renderGameOver, renderVictory,
-    renderBossVictory, renderCharacterSelect, renderLevelSelect
+    renderBossVictory, renderCharacterSelect, renderLevelSelect,
+    renderSaveSelect
 } from './menu-renderer.js';
 
 const STATE = {
     TITLE: 'title',
+    SAVE_SELECT: 'saveSelect',
     CHARACTER_SELECT: 'characterSelect',
     LEVEL_SELECT: 'levelSelect',
     PLAYING: 'playing',
@@ -61,6 +63,12 @@ export class Game {
         this.selectedLevel = 0;
         this.levelSelectTime = 0;
 
+        // Seletor de save
+        this.selectedSlot = 0;
+        this.saveSelectTime = 0;
+        this.confirmingDelete = false;
+        this.saveSlots = []; // Cache da lista de slots
+
         // Animacao de vitoria do boss
         this.bossVictoryTime = 0;
         this.bossVictoryFireworkTimer = 0;
@@ -68,12 +76,21 @@ export class Game {
 
         // Save
         this.saveManager = new SaveManager();
-        this.selectedSkin = this.saveManager.skin;
     }
 
     // Getters de conveniencia para dados de save
     get unlockedLevels() { return this.saveManager.unlockedLevels; }
     get highScore() { return this.saveManager.highScore; }
+
+    // Melhor recorde entre todos os slots (para tela de titulo)
+    get bestHighScore() {
+        const slots = this.saveManager.listSlots();
+        let best = 0;
+        for (const slot of slots) {
+            if (slot && slot.highScore > best) best = slot.highScore;
+        }
+        return best;
+    }
 
     async loadLevel(index) {
         this.currentLevelIndex = index;
@@ -118,6 +135,11 @@ export class Game {
     update(dt) {
         if (this.state === STATE.TITLE) {
             this.titleTime += dt;
+            return;
+        }
+
+        if (this.state === STATE.SAVE_SELECT) {
+            this.saveSelectTime += dt;
             return;
         }
 
@@ -255,7 +277,13 @@ export class Game {
         const isTouch = this.touchControls.active;
 
         if (this.state === STATE.TITLE) {
-            renderTitle(ctx, canvas, this.titleTime, this.highScore, isTouch);
+            renderTitle(ctx, canvas, this.titleTime, this.bestHighScore, isTouch);
+            return;
+        }
+
+        if (this.state === STATE.SAVE_SELECT) {
+            renderSaveSelect(ctx, canvas, this.saveSelectTime, this.selectedSlot,
+                this.saveSlots, this.confirmingDelete, isTouch);
             return;
         }
 
@@ -322,21 +350,31 @@ export class Game {
         }
     }
 
+    enterSaveSelect() {
+        this.state = STATE.SAVE_SELECT;
+        this.saveSelectTime = 0;
+        this.confirmingDelete = false;
+        this.saveSlots = this.saveManager.listSlots();
+    }
+
     handleKey(code) {
         if (this.state === STATE.TITLE && code === 'Enter') {
-            this.state = STATE.CHARACTER_SELECT;
-            this.selectTime = 0;
+            this.enterSaveSelect();
+        } else if (this.state === STATE.SAVE_SELECT) {
+            this.handleSaveSelectKey(code);
         } else if (this.state === STATE.CHARACTER_SELECT) {
             if (code === 'ArrowLeft' || code === 'KeyA') {
                 this.selectedSkin = Math.max(0, this.selectedSkin - 1);
             } else if (code === 'ArrowRight' || code === 'KeyD') {
                 this.selectedSkin = Math.min(2, this.selectedSkin + 1);
             } else if (code === 'Enter') {
+                this.saveManager.skin = this.selectedSkin;
+                this.saveManager.save();
                 this.state = STATE.LEVEL_SELECT;
                 this.levelSelectTime = 0;
                 this.selectedLevel = 0;
             } else if (code === 'Escape') {
-                this.state = STATE.TITLE;
+                this.enterSaveSelect();
             }
         } else if (this.state === STATE.LEVEL_SELECT) {
             if (code === 'ArrowLeft' || code === 'KeyA') {
@@ -351,8 +389,7 @@ export class Game {
                     this.saveManager.save();
                 }
             } else if (code === 'Escape') {
-                this.state = STATE.CHARACTER_SELECT;
-                this.selectTime = 0;
+                this.enterSaveSelect();
             }
         } else if (this.state === STATE.BOSS_VICTORY && code === 'Enter' && this.bossVictoryTime > 9) {
             this.state = STATE.VICTORY;
@@ -375,13 +412,89 @@ export class Game {
         }
     }
 
+    handleSaveSelectKey(code) {
+        if (this.confirmingDelete) {
+            if (code === 'Enter') {
+                this.saveManager.deleteSlot(this.selectedSlot);
+                this.saveSlots = this.saveManager.listSlots();
+                this.confirmingDelete = false;
+            } else if (code === 'Escape') {
+                this.confirmingDelete = false;
+            }
+            return;
+        }
+
+        if (code === 'ArrowLeft' || code === 'KeyA') {
+            this.selectedSlot = Math.max(0, this.selectedSlot - 1);
+        } else if (code === 'ArrowRight' || code === 'KeyD') {
+            this.selectedSlot = Math.min(2, this.selectedSlot + 1);
+        } else if (code === 'Enter') {
+            const slot = this.saveSlots[this.selectedSlot];
+            if (slot) {
+                // Continuar jogo existente
+                this.saveManager.selectSlot(this.selectedSlot);
+                this.selectedSkin = this.saveManager.skin;
+                this.state = STATE.LEVEL_SELECT;
+                this.levelSelectTime = 0;
+                this.selectedLevel = 0;
+            } else {
+                // Novo jogo — ir para selecao de personagem
+                this.saveManager.selectSlot(this.selectedSlot);
+                this.selectedSkin = 0;
+                this.state = STATE.CHARACTER_SELECT;
+                this.selectTime = 0;
+            }
+        } else if ((code === 'Delete' || code === 'Backspace') && this.saveSlots[this.selectedSlot]) {
+            this.confirmingDelete = true;
+        } else if (code === 'Escape') {
+            this.state = STATE.TITLE;
+        }
+    }
+
+    handleSaveSelectTap(x, y, w, h) {
+        const spacing = Math.min(260, (w - 80) / 3);
+        const baseX = w / 2;
+        const baseY = h / 2 - 10;
+
+        for (let i = 0; i < 3; i++) {
+            const px = baseX + (i - 1) * spacing;
+            const cardW = 200;
+            const cardH = 200;
+            const cx = px - cardW / 2;
+            const cy = baseY - cardH / 2;
+
+            if (x >= cx && x <= cx + cardW && y >= cy && y <= cy + cardH) {
+                const slot = this.saveSlots[i];
+                if (slot) {
+                    // Continuar jogo existente
+                    this.saveManager.selectSlot(i);
+                    this.selectedSkin = this.saveManager.skin;
+                    this.state = STATE.LEVEL_SELECT;
+                    this.levelSelectTime = 0;
+                    this.selectedLevel = 0;
+                } else {
+                    // Novo jogo
+                    this.saveManager.selectSlot(i);
+                    this.selectedSkin = 0;
+                    this.state = STATE.CHARACTER_SELECT;
+                    this.selectTime = 0;
+                }
+                return;
+            }
+        }
+    }
+
     handleTap(x, y) {
         const w = this.canvas.width;
         const h = this.canvas.height;
 
         if (this.state === STATE.TITLE) {
-            this.state = STATE.CHARACTER_SELECT;
-            this.selectTime = 0;
+            this.enterSaveSelect();
+            return;
+        }
+
+        if (this.state === STATE.SAVE_SELECT) {
+            this.handleSaveSelectTap(x, y, w, h);
             return;
         }
 
@@ -395,6 +508,8 @@ export class Game {
                 const dist = Math.hypot(x - px, y - baseY);
                 if (dist < 70) {
                     this.selectedSkin = i;
+                    this.saveManager.skin = this.selectedSkin;
+                    this.saveManager.save();
                     this.state = STATE.LEVEL_SELECT;
                     this.levelSelectTime = 0;
                     this.selectedLevel = 0;

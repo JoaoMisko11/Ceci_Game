@@ -1,4 +1,5 @@
 import { drawPlayerPreview, SKINS } from './renderer.js';
+import { MAX_SLOTS } from './save-manager.js';
 
 const LEVEL_NAMES = [
     'Fase 1 - Inicio',
@@ -337,6 +338,145 @@ export function renderBossVictory(ctx, canvas, bossVictoryTime, playerScore, hig
         ctx.font = '12px monospace';
         ctx.textAlign = 'center';
         ctx.fillText('Progresso salvo automaticamente', w / 2, h / 2 + 190);
+    }
+}
+
+export function renderSaveSelect(ctx, canvas, saveSelectTime, selectedSlot, slots, confirmingDelete, isTouch) {
+    const w = canvas.width;
+    const h = canvas.height;
+
+    drawGradientBg(ctx, w, h);
+
+    ctx.fillStyle = '#f1c40f';
+    ctx.font = 'bold 36px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('SAVES', w / 2, 70);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.font = '16px monospace';
+    ctx.fillText('Escolha um save para continuar ou comece um novo jogo', w / 2, 105);
+
+    const spacing = Math.min(260, (w - 80) / MAX_SLOTS);
+    const baseX = w / 2;
+    const baseY = h / 2 - 10;
+
+    for (let i = 0; i < MAX_SLOTS; i++) {
+        const px = baseX + (i - 1) * spacing;
+        const py = baseY;
+        const isSelected = i === selectedSlot;
+        const slot = slots[i];
+
+        const cardW = 200;
+        const cardH = 200;
+        const cx = px - cardW / 2;
+        const cy = py - cardH / 2;
+
+        const bounce = isSelected ? Math.sin(saveSelectTime * 3) * 3 : 0;
+
+        // Card background
+        if (isSelected) {
+            ctx.fillStyle = slot ? 'rgba(52, 152, 219, 0.15)' : 'rgba(46, 204, 113, 0.15)';
+            ctx.fillRect(cx - 6, cy - 6 + bounce, cardW + 12, cardH + 12);
+
+            ctx.strokeStyle = slot ? '#3498db' : '#2ecc71';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(cx - 4, cy - 4 + bounce, cardW + 8, cardH + 8);
+        }
+
+        ctx.fillStyle = isSelected
+            ? (slot ? 'rgba(52, 152, 219, 0.25)' : 'rgba(46, 204, 113, 0.2)')
+            : 'rgba(100, 100, 100, 0.15)';
+        ctx.fillRect(cx, cy + bounce, cardW, cardH);
+
+        // Slot number
+        ctx.fillStyle = isSelected ? '#fff' : 'rgba(255,255,255,0.4)';
+        ctx.font = 'bold 16px monospace';
+        ctx.fillText(`Save ${i + 1}`, px, cy + 28 + bounce);
+
+        if (slot) {
+            // Slot com dados — mostrar info
+            const skinData = SKINS[slot.skin] || SKINS[0];
+
+            // Personagem preview
+            drawPlayerPreview(ctx, px, cy + 70 + bounce, slot.skin, 2);
+
+            ctx.fillStyle = isSelected ? '#f1c40f' : 'rgba(241, 196, 15, 0.6)';
+            ctx.font = '14px monospace';
+            ctx.fillText(skinData.name, px, cy + 105 + bounce);
+
+            // Fases desbloqueadas
+            ctx.fillStyle = isSelected ? '#2ecc71' : 'rgba(46, 204, 113, 0.6)';
+            ctx.font = '13px monospace';
+            const levelsText = slot.unlockedLevels >= 4 ? 'Todas as fases' : `Fase ${slot.unlockedLevels}/4`;
+            ctx.fillText(levelsText, px, cy + 128 + bounce);
+
+            // Recorde
+            if (slot.highScore > 0) {
+                ctx.fillStyle = isSelected ? '#f1c40f' : 'rgba(241, 196, 15, 0.5)';
+                ctx.font = '12px monospace';
+                ctx.fillText(`Recorde: ${slot.highScore}`, px, cy + 148 + bounce);
+            }
+
+            // Data
+            if (slot.lastPlayed) {
+                ctx.fillStyle = isSelected ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)';
+                ctx.font = '11px monospace';
+                const date = new Date(slot.lastPlayed);
+                const dateStr = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+                ctx.fillText(dateStr, px, cy + 168 + bounce);
+            }
+
+            // Label "Continuar"
+            if (isSelected) {
+                ctx.fillStyle = '#3498db';
+                ctx.font = 'bold 14px monospace';
+                ctx.fillText('CONTINUAR', px, cy + 192 + bounce);
+            }
+        } else {
+            // Slot vazio
+            ctx.fillStyle = isSelected ? '#2ecc71' : 'rgba(255,255,255,0.3)';
+            ctx.font = 'bold 40px monospace';
+            ctx.fillText('+', px, cy + 100 + bounce);
+
+            ctx.fillStyle = isSelected ? '#2ecc71' : 'rgba(255,255,255,0.3)';
+            ctx.font = '14px monospace';
+            ctx.fillText('Novo Jogo', px, cy + 135 + bounce);
+        }
+    }
+
+    // Setas de navegacao
+    ctx.fillStyle = '#f1c40f';
+    ctx.font = 'bold 30px monospace';
+    if (selectedSlot > 0) {
+        ctx.fillText('<', baseX - 1.5 * spacing - 20, baseY);
+    }
+    if (selectedSlot < MAX_SLOTS - 1) {
+        ctx.fillText('>', baseX + 1.5 * spacing + 20, baseY);
+    }
+
+    // Instrucoes
+    if (isTouch) {
+        ctx.fillStyle = '#fff';
+        ctx.font = '18px monospace';
+        ctx.fillText('Toque no save para selecionar', w / 2, h - 80);
+    } else {
+        if (Math.floor(saveSelectTime * 2) % 2 === 0) {
+            ctx.fillStyle = '#fff';
+            ctx.font = '18px monospace';
+            ctx.fillText('ENTER = Selecionar', w / 2, h - 80);
+        }
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = '14px monospace';
+        const hasSlot = slots[selectedSlot] !== null;
+        if (hasSlot && !confirmingDelete) {
+            ctx.fillText('Setas <- -> para escolher  |  DEL = Apagar save  |  ESC = Voltar', w / 2, h - 45);
+        } else if (confirmingDelete) {
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText('Apagar este save? ENTER = Sim  |  ESC = Cancelar', w / 2, h - 45);
+        } else {
+            ctx.fillText('Setas <- -> para escolher  |  ESC = Voltar', w / 2, h - 45);
+        }
     }
 }
 
