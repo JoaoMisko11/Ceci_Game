@@ -2,6 +2,7 @@ import { drawPlayerPreview, SKINS } from './renderer.js';
 import { MAX_SLOTS } from './save-manager.js';
 
 const LEVEL_NAMES = [
+    'Tutorial - Jardim do Templo',
     'Fase 1 - Inicio',
     'Fase 2 - Desafio',
     'Fase 3 - Profundezas',
@@ -407,7 +408,8 @@ export function renderSaveSelect(ctx, canvas, saveSelectTime, selectedSlot, slot
             // Fases desbloqueadas
             ctx.fillStyle = isSelected ? '#2ecc71' : 'rgba(46, 204, 113, 0.6)';
             ctx.font = '13px monospace';
-            const levelsText = slot.unlockedLevels >= 4 ? 'Todas as fases' : `Fase ${slot.unlockedLevels}/4`;
+            const totalLvls = LEVEL_NAMES.length;
+            const levelsText = slot.unlockedLevels >= totalLvls ? 'Todas as fases' : `Fase ${slot.unlockedLevels}/${totalLvls}`;
             ctx.fillText(levelsText, px, cy + 128 + bounce);
 
             // Recorde
@@ -491,32 +493,37 @@ export function renderCharacterSelect(ctx, canvas, selectTime, selectedSkin, isT
     ctx.textAlign = 'center';
     ctx.fillText('ESCOLHA SEU PERSONAGEM', w / 2, 80);
 
-    const spacing = Math.min(220, w / 4);
+    const skinCount = SKINS.length;
+    const spacing = Math.min(180, (w - 80) / skinCount);
     const baseX = w / 2;
     const baseY = h / 2 - 20;
 
-    for (let i = 0; i < 3; i++) {
-        const px = baseX + (i - 1) * spacing;
+    for (let i = 0; i < skinCount; i++) {
+        const px = baseX + (i - (skinCount - 1) / 2) * spacing;
         const py = baseY;
         const isSelected = i === selectedSkin;
+
+        const previewScale = skinCount > 3 ? 2.5 : 3;
+        const previewScaleSmall = skinCount > 3 ? 2 : 2.5;
+        const circleR = skinCount > 3 ? 58 : 70;
 
         if (isSelected) {
             const bounce = Math.sin(selectTime * 3) * 4;
             ctx.fillStyle = 'rgba(241, 196, 15, 0.15)';
             ctx.beginPath();
-            ctx.arc(px, py + bounce, 70, 0, Math.PI * 2);
+            ctx.arc(px, py + bounce, circleR, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.strokeStyle = '#f1c40f';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(px, py + bounce, 68, 0, Math.PI * 2);
+            ctx.arc(px, py + bounce, circleR - 2, 0, Math.PI * 2);
             ctx.stroke();
 
-            drawPlayerPreview(ctx, px, py - 10 + bounce, i, 3);
+            drawPlayerPreview(ctx, px, py - 10 + bounce, i, previewScale);
         } else {
             ctx.globalAlpha = 0.5;
-            drawPlayerPreview(ctx, px, py - 10, i, 2.5);
+            drawPlayerPreview(ctx, px, py - 10, i, previewScaleSmall);
             ctx.globalAlpha = 1;
         }
 
@@ -534,10 +541,10 @@ export function renderCharacterSelect(ctx, canvas, selectTime, selectedSkin, isT
     ctx.font = 'bold 30px monospace';
     ctx.textAlign = 'center';
     if (selectedSkin > 0) {
-        ctx.fillText('<', baseX - 1.5 * spacing - 10, baseY);
+        ctx.fillText('<', baseX - ((skinCount - 1) / 2) * spacing - 50, baseY);
     }
-    if (selectedSkin < 2) {
-        ctx.fillText('>', baseX + 1.5 * spacing + 10, baseY);
+    if (selectedSkin < skinCount - 1) {
+        ctx.fillText('>', baseX + ((skinCount - 1) / 2) * spacing + 50, baseY);
     }
 
     if (Math.floor(selectTime * 2) % 2 === 0) {

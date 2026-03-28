@@ -49,6 +49,28 @@ export const SKINS = [
             }
         },
         face: { mouthX: 11, mouthW: 6 }
+    },
+    {
+        name: 'Hiro',
+        desc: 'Samurai Japones',
+        colors: {
+            hair: '#1a1a2e',         // cabelo preto azulado
+            body: '#c0392b',         // kimono vermelho
+            bodyAccent: '#922b21',   // faixa do kimono
+            skin: '#f5cba7',
+            eyeIris: '#2c3e50',      // olhos escuros
+            mouth: '#c0392b',
+            headband: '#fff',        // hachimaki branco
+            headbandKnot: '#e74c3c', // no vermelho
+            katana: {
+                blade: '#d5d8dc',
+                shine: 'rgba(255, 255, 255, 0.5)',
+                guard: '#f1c40f',
+                handle: '#2c3e50',
+                wrap: '#c0392b'
+            }
+        },
+        face: { mouthX: 12, mouthW: 4 }
     }
 ];
 

@@ -61,11 +61,13 @@ Jogo de plataforma 2D para web com HTML5 Canvas.
 - [x] Tela de game over (com pontuacao e restart)
 - [x] Tela de vitoria (ao coletar todos os itens)
 - [x] Sistema de estados (TITLE -> CHARACTER_SELECT -> PLAYING -> GAME_OVER/VICTORY)
-- [x] Tela de selecao de personagem (3 skins: Luna, Mei, Leo)
+- [x] Tela de selecao de personagem (4 skins: Luna, Mei, Leo, Hiro)
 - [x] Efeitos de particulas (poeira ao pular/aterrissar, brilho ao coletar, explosao ao matar)
 
 ## Fase 8 - Conteudo ✅
 
+- [x] Fase Tutorial — Jardim do Templo (nivel introdutorio com mecanicas graduais, poucos inimigos)
+- [x] Personagem Hiro — Samurai Japones (skin 3 com kimono, katana, hachimaki)
 - [x] Criar mais fases com dificuldade progressiva (Fase 2 com buracos, mais inimigos voadores)
 - [x] Novos tipos de plataformas (moveis com setas, quebraveis com rachaduras)
 - [x] Novos tipos de inimigos (voador com asas animadas e flutuacao)

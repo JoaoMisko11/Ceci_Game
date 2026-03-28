@@ -34,6 +34,7 @@ const STATE = {
 };
 
 const LEVELS = [
+    'assets/levels/level0-tutorial.json',
     'assets/levels/level1.json',
     'assets/levels/level2.json',
     'assets/levels/level3.json',
@@ -366,7 +367,7 @@ export class Game {
             if (code === 'ArrowLeft' || code === 'KeyA') {
                 this.selectedSkin = Math.max(0, this.selectedSkin - 1);
             } else if (code === 'ArrowRight' || code === 'KeyD') {
-                this.selectedSkin = Math.min(2, this.selectedSkin + 1);
+                this.selectedSkin = Math.min(3, this.selectedSkin + 1);
             } else if (code === 'Enter') {
                 this.saveManager.skin = this.selectedSkin;
                 this.saveManager.save();
@@ -499,12 +500,13 @@ export class Game {
         }
 
         if (this.state === STATE.CHARACTER_SELECT) {
-            const spacing = Math.min(220, w / 4);
+            const skinCount = 4;
+            const spacing = Math.min(180, (w - 80) / skinCount);
             const baseX = w / 2;
             const baseY = h / 2 - 20;
 
-            for (let i = 0; i < 3; i++) {
-                const px = baseX + (i - 1) * spacing;
+            for (let i = 0; i < skinCount; i++) {
+                const px = baseX + (i - (skinCount - 1) / 2) * spacing;
                 const dist = Math.hypot(x - px, y - baseY);
                 if (dist < 70) {
                     this.selectedSkin = i;

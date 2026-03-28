@@ -49,8 +49,8 @@ Instale o Node.js em https://nodejs.org (basta baixar e instalar, depois rodar `
 
 ## Funcionalidades
 
-- 3 personagens selecionaveis (Luna, Mei, Leo)
-- 4 fases com dificuldade progressiva (tutorial, avancado, profundezas, oceano profundo)
+- 4 personagens selecionaveis (Luna, Mei, Leo, Hiro o Samurai)
+- 5 fases com dificuldade progressiva (tutorial, inicio, desafio, profundezas, oceano profundo)
 - Boss final na fase 4 (polvo) com animacao de vitoria epica
 - 3 slots de save independentes (continuar jogo ou comecar novo)
 - Seletor de fases com progresso salvo por slot

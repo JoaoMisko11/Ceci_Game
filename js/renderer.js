@@ -17,6 +17,9 @@ export function drawPlayer(ctx, player) {
         case 2:
             drawWheelchairBoy(ctx, player);
             break;
+        case 3:
+            drawSamurai(ctx, player);
+            break;
         default:
             drawBlondeGirl(ctx, player);
             break;
@@ -43,6 +46,9 @@ export function drawPlayerPreview(ctx, cx, cy, skinIndex, scale = 3) {
             break;
         case 2:
             drawWheelchairBoy(ctx, fakePlayer);
+            break;
+        case 3:
+            drawSamurai(ctx, fakePlayer);
             break;
         default:
             drawBlondeGirl(ctx, fakePlayer);
@@ -250,7 +256,103 @@ function drawWheelchairBoy(ctx, player) {
     ctx.fillRect(swordX + (facingRight ? 5 : 7), y + 25, 4, 6);
 }
 
-// Funcao auxiliar para desenhar pes (usada por skins 0 e 1)
+// === SKIN 3: Samurai Japones (Hiro) ===
+function drawSamurai(ctx, player) {
+    const { x, y, width, height, vx, onGround } = player;
+    const facingRight = player.lastDirection >= 0;
+    const c = SKINS[3].colors;
+
+    // Katana (atras do corpo)
+    const swordDir = facingRight ? 1 : -1;
+    const katanaX = facingRight ? x + width - 2 : x - 10;
+
+    // Bainha/lamina nas costas (diagonal)
+    ctx.save();
+    ctx.translate(katanaX + 6, y + 8);
+    ctx.rotate(facingRight ? -0.4 : 0.4);
+
+    // Lamina
+    ctx.fillStyle = c.katana.blade;
+    ctx.fillRect(-2, -18, 4, 24);
+    // Ponta
+    ctx.beginPath();
+    ctx.moveTo(-2, -18);
+    ctx.lineTo(0, -24);
+    ctx.lineTo(2, -18);
+    ctx.closePath();
+    ctx.fill();
+    // Brilho
+    ctx.fillStyle = c.katana.shine;
+    ctx.fillRect(-0.5, -16, 1, 18);
+    // Guarda (tsuba)
+    ctx.fillStyle = c.katana.guard;
+    ctx.fillRect(-4, 6, 8, 3);
+    // Cabo (tsuka)
+    ctx.fillStyle = c.katana.handle;
+    ctx.fillRect(-1.5, 9, 3, 10);
+    // Fita no cabo
+    ctx.fillStyle = c.katana.wrap;
+    for (let i = 0; i < 3; i++) {
+        ctx.fillRect(-2, 10 + i * 4, 4, 1.5);
+    }
+
+    ctx.restore();
+
+    // Kimono vermelho (corpo)
+    ctx.fillStyle = c.body;
+    roundRect(ctx, x + 2, y + 14, width - 4, height - 20, 4);
+
+    // Decote em V do kimono
+    ctx.fillStyle = c.skin;
+    ctx.beginPath();
+    ctx.moveTo(x + 8, y + 14);
+    ctx.lineTo(x + width / 2, y + 24);
+    ctx.lineTo(x + width - 8, y + 14);
+    ctx.closePath();
+    ctx.fill();
+
+    // Faixa (obi)
+    ctx.fillStyle = c.bodyAccent;
+    ctx.fillRect(x + 2, y + 26, width - 4, 5);
+
+    // Parte inferior do kimono (hakama)
+    ctx.fillStyle = c.body;
+    ctx.fillRect(x, y + height - 14, width, 8);
+    // Linha central do hakama
+    ctx.fillStyle = c.bodyAccent;
+    ctx.fillRect(x + width / 2 - 0.5, y + 31, 1, height - 37);
+
+    // Cabelo preto
+    ctx.fillStyle = c.hair;
+    roundRect(ctx, x + 2, y - 2, width - 4, 14, 5);
+
+    // Coque (chonmage) no topo
+    ctx.fillStyle = c.hair;
+    const bunX = x + width / 2;
+    ctx.beginPath();
+    ctx.ellipse(bunX, y - 4, 5, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    drawFace(ctx, x, y, width, facingRight, 3);
+
+    // Hachimaki (faixa na testa) — branco
+    ctx.fillStyle = c.headband;
+    ctx.fillRect(x + 3, y + 1, width - 6, 3);
+
+    // No do hachimaki (atras)
+    ctx.fillStyle = c.headbandKnot;
+    const knotX = facingRight ? x : x + width - 4;
+    ctx.fillRect(knotX, y, 4, 5);
+    // Pontas da fita
+    ctx.fillRect(knotX - (facingRight ? 4 : -4), y + 2, 4, 2);
+    ctx.fillRect(knotX - (facingRight ? 3 : -3), y + 4, 3, 2);
+
+    // Sandalia (waraji)
+    ctx.fillStyle = '#8d6e63';
+    drawFeet(ctx, player);
+}
+
+// Funcao auxiliar para desenhar pes (usada por skins 0, 1 e 3)
 function drawFeet(ctx, player) {
     const { x, y, width, height, vx, onGround } = player;
 
